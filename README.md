@@ -2,13 +2,26 @@
 
 Une interface graphique moderne et intuitive pour interagir avec des modèles de langage locaux via Ollama.
 
-## 📋 Prérequis
+## Prérequis
 
 - Python 3.8 ou supérieur
 - Ollama installé et en cours d'exécution ([Installation Ollama](https://ollama.ai))
 - Un ou plusieurs modèles Ollama téléchargés
 
-## 🚀 Installation
+## Fonctionnalités
+
+- Interface graphique moderne avec PySide6
+- Sélection dynamique des modèles installés
+- Historique de conversation
+- Traitement asynchrone (l'interface ne se fige pas)
+- Gestion des erreurs
+- Support de plusieurs modèles Ollama
+- Rafraîchissement de la liste des modèles
+- Copier/collé des messages, d'une sélection ou d'un bloc de code
+
+Et pleins d'autres [à venir](TODO.md) !
+
+## Installation
 
 1. **Cloner le repository**
 ```powershell
@@ -41,7 +54,7 @@ Autres modèles populaires :
 - `ollama pull codellama` - CodeLlama pour la programmation
 - `ollama pull llama3` - Llama 3
 
-## 💻 Utilisation
+## Utilisation
 
 1. **Assurez-vous qu'Ollama est en cours d'exécution**
 
@@ -58,22 +71,11 @@ python main.py
 3. **Utiliser l'interface**
    - Sélectionnez un modèle dans la liste déroulante
    - Tapez votre message dans la zone de texte
-   - Cliquez sur "📤 Envoyer" ou appuyez sur Ctrl+Entrée
+   - Cliquez sur "Envoyer" ou appuyez sur Ctrl+Entrée
    - Les réponses s'affichent dans la zone de conversation
-   - Utilisez "🗑️ Effacer" pour réinitialiser la conversation
+   - Utilisez "Effacer" pour réinitialiser la conversation
 
-## 🎨 Fonctionnalités
-
-- ✅ Interface graphique moderne avec PySide6
-- ✅ Sélection dynamique des modèles installés
-- ✅ Historique de conversation
-- ✅ Traitement asynchrone (l'interface ne se fige pas)
-- ✅ Gestion des erreurs
-- ✅ Support de plusieurs modèles Ollama
-- ✅ Rafraîchissement de la liste des modèles
-- ✅ Copier/collé des messages, d'une sélection ou d'un bloc de code
-
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 Local_LLM_GUI/
@@ -90,7 +92,7 @@ Local_LLM_GUI/
     └── icon.ico           # Icône de l'application
 ```
 
-## 🔧 Configuration
+## Configuration
 
 Par défaut, l'application se connecte à Ollama sur `http://localhost:11434`.
 
@@ -99,12 +101,12 @@ Pour modifier l'URL d'Ollama, éditez le fichier `core/ollama_client.py` :
 def __init__(self, base_url="http://localhost:11434"):
 ```
 
-## 🐛 Dépannage
+## Dépannage
 
 **Problème : "Aucun modèle disponible"**
 - Vérifiez qu'Ollama est en cours d'exécution : `ollama list`
 - Téléchargez un modèle : `ollama pull llama2`
-- Cliquez sur le bouton "🔄 Rafraîchir"
+- Cliquez sur le bouton "Rafraîchir"
 
 **Problème : "Erreur de connexion"**
 - Assurez-vous qu'Ollama est lancé
@@ -115,14 +117,14 @@ def __init__(self, base_url="http://localhost:11434"):
 - Envisagez d'utiliser un modèle plus petit (ex: `ollama pull phi`)
 - Fermez les autres applications gourmandes en ressources
 
-## 📝 Licence
+## Licence
 
 Ce projet est sous licence MIT - voir le fichier LICENSE pour plus de détails.
 
-## 🤝 Contribution
+## Contribution
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
 
-## 👨‍💻 Auteur
+## Auteur
 
 [Arthur Fert](https://github.com/Arthurfert)
