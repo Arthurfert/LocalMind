@@ -2,7 +2,6 @@
 Client pour interagir avec Ollama API
 """
 import requests
-from PySide6.QtCore import QThread, Signal
 
 
 class OllamaClient:
@@ -80,7 +79,7 @@ class OllamaClient:
                             if chunk:
                                 full_response += chunk
                                 if chunk_callback:
-                                    chunk_callback.emit(chunk)
+                                    chunk_callback(chunk)
                         except json.JSONDecodeError:
                             continue
                 
@@ -92,39 +91,3 @@ class OllamaClient:
             return "Erreur: La requête a expiré. Le modèle met trop de temps à répondre."
         except Exception as e:
             return f"Erreur: {str(e)}"
-
-
-class OllamaWorker(QThread):
-    """Worker thread pour les requêtes Ollama asynchrones avec streaming"""
-    
-    response_ready = Signal(str)
-    response_chunk = Signal(str)  # Nouveau signal pour les chunks en streaming
-    error_occurred = Signal(str)
-    
-    def __init__(self, client, model, prompt, conversation_history, images=None):
-        super().__init__()
-        self.client = client
-        self.model = model
-        self.prompt = prompt
-        self.conversation_history = conversation_history
-        self.images = images or []  # Liste d'images encodées en base64
-    
-    def run(self):
-        """Exécute la requête dans un thread séparé"""
-        try:
-            # Construire les messages pour l'API chat
-            messages = self.conversation_history.copy()
-            messages.append({"role": "user", "content": self.prompt})
-            
-            # Mode streaming
-            full_response = self.client.chat_stream(
-                self.model, messages, self.response_chunk, 
-                images=self.images if self.images else None
-            )
-            if full_response.startswith("Erreur:"):
-                self.error_occurred.emit(full_response)
-            else:
-                self.response_ready.emit(full_response)
-                
-        except Exception as e:
-            self.error_occurred.emit(f"Erreur inattendue: {str(e)}")

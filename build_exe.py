@@ -15,5 +15,7 @@ PyInstaller.__main__.run([
     '--onefile',                    # Un seul fichier exécutable
     f'--icon={icon_path}',          # Icône de l'application
     '--add-data=assets;assets',     # Inclure le dossier assets
+    '--add-data=web;web',           # Inclure le dossier web (Eel)
+    '--hidden-import=bottle_websocket', # Dépendance Eel
     '--clean',                      # Nettoyer les fichiers temporaires
 ])

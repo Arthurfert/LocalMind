@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 """
-Application GUI pour utiliser des LLM en local avec Ollama
+Application GUI pour utiliser des LLM en local avec Ollama (Version Eel)
 """
-import sys
 import os
-from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QIcon
-from gui.main_window import MainWindow
-
+import eel
+from core import api  # Import important pour enregistrer les @eel.expose
 
 def main():
-    app = QApplication(sys.argv)
-    app.setApplicationName("Local LLM GUI")
-    app.setOrganizationName("LocalLLM")
+    # Chemin vers le dossier web
+    web_dir = os.path.join(os.path.dirname(__file__), "web")
     
-    # Définir l'icône de l'application (pour la barre des tâches)
-    icon_path = os.path.join(os.path.dirname(__file__), "assets", "icon.png")
-    if os.path.exists(icon_path):
-        app.setWindowIcon(QIcon(icon_path))
+    # Indiquer à Eel où chercher les fichiers (HTML/CSS/JS)
+    eel.init(web_dir)
     
-    window = MainWindow()
-    window.show()
-    
-    sys.exit(app.exec())
-
+    # Lancement fenêtré de l'application (mode 'chrome' ou 'edge')
+    try:
+        # App mode donne un rendu exact à une application bureautique
+        eel.start('index.html', size=(1000, 700), mode='chrome')
+    except Exception as e:
+        print(f"Erreur au lancement avec Chrome/Edge. Lancement via navigateur par défaut... {e}")
+        eel.start('index.html', size=(1000, 700), mode='default')
 
 if __name__ == "__main__":
     main()

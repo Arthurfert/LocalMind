@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local LLM GUI</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Injection obligatoire pour faire le pont avec Python -->
+    <script type="text/javascript" src="/eel.js"></script>
+    
+    <!-- Include Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>Réglages</h2>
+            <div class="form-group">
+                <label for="model-select">Modèle :</label>
+                <select id="model-select">
+                    <option value="">Chargement...</option>
+                </select>
+                <button id="refresh-models" title="Actualiser les modèles">🔄</button>
+            </div>
+            <div class="sidebar-spacer"></div>
+            <button id="new-chat-btn">Nouveau Chat</button>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-content">
+            <div class="chat-header">
+                <h2>Ollama Chat</h2>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="chat-input-container">
+                <textarea id="message-input" placeholder="Tapez votre message ici... (Entrée pour envoyer, Maj+Entrée pour saut de ligne)"></textarea>
+                <button id="send-btn">Envoyer</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
