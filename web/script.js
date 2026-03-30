@@ -102,6 +102,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const messageInput = document.getElementById("message-input");
     const sendBtn = document.getElementById("send-btn");
     
+    // Éléments de la modal de suppression
+    const deleteModal = document.getElementById("delete-modal");
+    const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
+    const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
+
+    function showCustomConfirm(callback) {
+        deleteModal.style.display = "flex";
+        // Force reflow pour l'animation
+        void deleteModal.offsetWidth;
+        deleteModal.classList.add("show");
+        
+        const cleanup = () => {
+            deleteModal.classList.remove("show");
+            setTimeout(() => {
+                deleteModal.style.display = "none";
+            }, 200);
+            confirmDeleteBtn.removeEventListener("click", onConfirm);
+            cancelDeleteBtn.removeEventListener("click", onCancel);
+        };
+        
+        const onConfirm = () => { cleanup(); callback(true); };
+        const onCancel = () => { cleanup(); callback(false); };
+        
+        confirmDeleteBtn.addEventListener("click", onConfirm);
+        cancelDeleteBtn.addEventListener("click", onCancel);
+    }
+    
     // Nouveaux éléments du menu déroulant
     const modelDropdown = document.getElementById("model-dropdown");
     const dropdownSelected = document.getElementById("dropdown-selected");
@@ -314,7 +341,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 const div = document.createElement("div");
                 div.className = "history-item";
                 div.dataset.id = chat.id;
-                div.textContent = chat.title;
+                
+                // Titre de la discussion
+                const titleSpan = document.createElement("span");
+                titleSpan.className = "history-item-title";
+                titleSpan.textContent = chat.title;
+                div.appendChild(titleSpan);
+                
+                // Bouton supprimer interactif
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "delete-chat-btn";
+                deleteBtn.title = "Supprimer la discussion";
+                deleteBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                `;
+                
+                deleteBtn.addEventListener("click", (e) => {
+                    e.stopPropagation(); // Évite que le clic n'ouvre la discussion
+                    showCustomConfirm(async (confirmed) => {
+                        if(confirmed) {
+                            const success = await eel.delete_chat(chat.id)();
+                            if(success) {
+                                if(currentChatId === chat.id) {
+                                    document.getElementById("new-chat-btn").click(); // Remise à zéro si c'est la discussion active
+                                }
+                                window.loadHistory(); // Rafraîchit la liste
+                            }
+                        }
+                    });
+                });
+                div.appendChild(deleteBtn);
+                
                 if (chat.id === currentChatId) {
                     div.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
                 }
