@@ -88,7 +88,13 @@ function onStreamError(err) {
 document.addEventListener("DOMContentLoaded", () => {
     const messageInput = document.getElementById("message-input");
     const sendBtn = document.getElementById("send-btn");
-    const modelSelect = document.getElementById("model-select");
+    
+    // Nouveaux éléments du menu déroulant
+    const modelDropdown = document.getElementById("model-dropdown");
+    const dropdownSelected = document.getElementById("dropdown-selected");
+    const dropdownOptions = document.getElementById("dropdown-options");
+    let currentModel = "";
+
     const newChatBtn = document.getElementById("new-chat-btn");
     const emptyState = document.getElementById("empty-state");
     const chatMessages = document.getElementById("chat-messages");
@@ -176,19 +182,38 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const models = await eel.get_models()();
             
-            modelSelect.innerHTML = "";
+            dropdownOptions.innerHTML = "";
             if (!models || models.length === 0) {
-                const opt = document.createElement("option");
-                opt.textContent = "Aucun modèle trouvé";
-                modelSelect.appendChild(opt);
+                dropdownSelected.textContent = "Aucun modèle trouvé";
                 sendBtn.disabled = true;
             } else {
+                currentModel = models[0];
+                dropdownSelected.textContent = currentModel;
+                
                 models.forEach(m => {
-                    const opt = document.createElement("option");
-                    opt.value = m;
-                    opt.textContent = m; // Affichera le nom brut, ex: 'llama3'
-                    modelSelect.appendChild(opt);
+                    const opt = document.createElement("div");
+                    opt.className = "dropdown-option";
+                    opt.textContent = m;
+                    opt.addEventListener("click", (e) => {
+                        e.stopPropagation(); // Évite que ça remonte au parent
+                        currentModel = m;
+                        dropdownSelected.textContent = m;
+                        dropdownOptions.classList.remove("show");
+                        
+                        // Active/Désactive l'envoi si du texte est présent
+                        if(messageInput.value.trim() !== "" && currentModel !== "") {
+                            sendBtn.disabled = false;
+                            sendBtn.style.color = "#000000";
+                            sendBtn.style.backgroundColor = "#ECECEC";
+                        } else {
+                            sendBtn.disabled = true;
+                            sendBtn.style.backgroundColor = "#444";
+                            sendBtn.style.color = "#909090";
+                        }
+                    });
+                    dropdownOptions.appendChild(opt);
                 });
+                
                 // Évalue si on a du texte de prêt pour activer l'envoi
                 sendBtn.disabled = messageInput.value.trim() === "";
             }
@@ -197,13 +222,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Gestion du clic pour ouvrir/fermer le menu
+    dropdownSelected.addEventListener("click", () => {
+        dropdownOptions.classList.toggle("show");
+    });
+
+    // Fermer le menu si on clique ailleurs
+    document.addEventListener("click", (e) => {
+        if (!modelDropdown.contains(e.target)) {
+            dropdownOptions.classList.remove("show");
+        }
+    });
+
     // Auto-resize de l'input box
     messageInput.addEventListener("input", function() {
         this.style.height = "auto";
         this.style.height = (this.scrollHeight) + "px";
         
         // Activer / désactiver le bouton d'envoi
-        if(this.value.trim() !== "" && modelSelect.value !== "") {
+        if(this.value.trim() !== "" && currentModel !== "") {
             sendBtn.disabled = false;
             sendBtn.style.color = "#ffffff";
             sendBtn.style.backgroundColor = "#ECECEC";
@@ -225,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function sendMessage() {
         const text = messageInput.value.trim();
-        const model = modelSelect.value;
+        const model = currentModel;
         
         if (!text || !model) return;
         
