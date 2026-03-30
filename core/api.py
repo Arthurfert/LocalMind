@@ -1,5 +1,8 @@
 import eel
 import threading
+import json
+import os
+import time
 from core.ollama_client import OllamaClient
 from typing import Any
 
@@ -9,6 +12,78 @@ ollama = OllamaClient()
 # Pylance astuce : comme les fonctions JS sont injectées dynamiquement par Eel à l'exécution,
 # Pylance ne peut pas les deviner. On dit à Pylance que `eel` est dynamique.
 eel_dynamic: Any = eel
+
+CHATS_DIR = "chats"
+os.makedirs(CHATS_DIR, exist_ok=True)
+
+@eel.expose
+def get_chats():
+    """Récupère la liste des discussions enregistrées."""
+    chats = []
+    for filename in os.listdir(CHATS_DIR):
+        if filename.endswith(".json"):
+            filepath = os.path.join(CHATS_DIR, filename)
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    chats.append({
+                        "id": data.get("id", filename.replace(".json", "")),
+                        "title": data.get("title", "Nouvelle discussion"),
+                        "date": data.get("date", 0),
+                        "model": data.get("model", "")
+                    })
+            except Exception as e:
+                print(f"Erreur de lecture du fichier {filename}: {e}")
+    # Trier par date décroissante
+    chats.sort(key=lambda x: x["date"], reverse=True)
+    return chats
+
+@eel.expose
+def load_chat(chat_id):
+    """Charge une discussion spécifique."""
+    filepath = os.path.join(CHATS_DIR, f"{chat_id}.json")
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Erreur de lecture du chat {chat_id}: {e}")
+    return None
+
+@eel.expose
+def save_chat(chat_id, title, messages, model):
+    """Sauvegarde une discussion."""
+    if not chat_id:
+        chat_id = str(int(time.time() * 1000))
+        
+    filepath = os.path.join(CHATS_DIR, f"{chat_id}.json")
+    data = {
+        "id": chat_id,
+        "title": title,
+        "date": time.time(),
+        "model": model,
+        "messages": messages
+    }
+    
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        return chat_id
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde du chat {chat_id}: {e}")
+        return None
+
+@eel.expose
+def delete_chat(chat_id):
+    """Supprime une discussion."""
+    filepath = os.path.join(CHATS_DIR, f"{chat_id}.json")
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+            return True
+        except Exception as e:
+            print(f"Erreur lors de la suppression du chat {chat_id}: {e}")
+    return False
 
 @eel.expose
 def get_models():

@@ -4,6 +4,8 @@ let messages = [];
 let currentBotMessageElement = null;
 let currentBotText = "";
 let isGenerating = false;
+let currentChatId = null;
+let currentChatTitle = "";
 
 // Exposer les fonctions JS à Python via Eel
 eel.expose(onStreamChunk);
@@ -30,6 +32,17 @@ function onStreamEnd() {
     currentBotMessageElement = null;
     isGenerating = false;
     
+    // Sauvegarder la discussion
+    const dropdownSelected = document.getElementById("dropdown-selected");
+    const model = dropdownSelected ? dropdownSelected.textContent : "";
+    eel.save_chat(currentChatId, currentChatTitle, messages, model)(id => {
+        if (id && id !== currentChatId) {
+            currentChatId = id;
+            // On met à jour l'historique fraîchement
+            if (typeof loadHistory === "function") loadHistory();
+        }
+    });
+
     // On réactive les widgets
     const sendBtn = document.getElementById("send-btn");
     const msgInput = document.getElementById("message-input");
@@ -252,23 +265,97 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Fonction pour charger une discussion spécifique de l'historique
+    window.loadChat = async function(chatId) {
+        try {
+            const chatData = await eel.load_chat(chatId)();
+            if (chatData) {
+                currentChatId = chatData.id;
+                currentChatTitle = chatData.title;
+                messages = chatData.messages;
+                
+                // Mettre à jour l'interface
+                chatMessages.innerHTML = "";
+                emptyState.style.display = "none";
+                
+                messages.forEach(msg => {
+                    addMessageToUI(msg.role, msg.content);
+                });
+                
+                // Mettre en surbrillance dans la liste
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.style.backgroundColor = item.dataset.id === chatId ? "rgba(255, 255, 255, 0.1)" : "";
+                });
+            }
+        } catch (error) {
+            console.error("Erreur de chargement du chat:", error);
+        }
+    };
+
+    // Fonction globale pour recharger la liste depuis Python
+    window.loadHistory = async function() {
+        const historyList = document.getElementById("history-list");
+        if (!historyList) return;
+        
+        try {
+            const chats = await eel.get_chats()();
+            historyList.innerHTML = "";
+            
+            if (chats.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "history-item";
+                empty.style.color = "var(--text-secondary)";
+                empty.textContent = "Aucune discussion";
+                historyList.appendChild(empty);
+                return;
+            }
+            
+            chats.forEach(chat => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.dataset.id = chat.id;
+                div.textContent = chat.title;
+                if (chat.id === currentChatId) {
+                    div.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                }
+                
+                div.addEventListener("click", () => {
+                    if (isGenerating) return; // Empêche de changer de chat pendant la génération
+                    window.loadChat(chat.id);
+                });
+                
+                historyList.appendChild(div);
+            });
+        } catch (error) {
+            console.error("Erreur lors du chargement de l'historique :", error);
+        }
+    };
+
     loadModels();
+    window.loadHistory();
 
     newChatBtn.addEventListener("click", () => {
         messages = [];
+        currentChatId = null;
+        currentChatTitle = "";
         chatMessages.innerHTML = "";
         emptyState.style.display = "flex";
+        
+        // Retirer la surbrillance de l'historique
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.style.backgroundColor = "";
+        });
     });
 
     async function sendMessage() {
         const text = messageInput.value.trim();
         const model = currentModel;
-        
+
         if (!text || !model) return;
         
-        isGenerating = true;
-        
-        // Mettre à jour l'apparence du bouton (pour arrêter la génération)
+        if (!currentChatTitle) {
+            currentChatTitle = text.length > 30 ? text.substring(0, 30) + '...' : text;
+        }
         sendBtn.innerHTML = `
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
