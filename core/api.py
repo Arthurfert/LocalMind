@@ -18,6 +18,14 @@ def get_models():
     return ollama.get_available_models()
 
 @eel.expose
+def abort_generation():
+    """
+    Arrête la génération en cours.
+    """
+    print("Demande d'arrêt reçue par l'API.")
+    ollama.abort()
+
+@eel.expose
 def send_message(model, messages, images=None):
     """
     Démarre la discussion avec un modèle en arrière-plan.

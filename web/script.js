@@ -3,6 +3,7 @@
 let messages = [];
 let currentBotMessageElement = null;
 let currentBotText = "";
+let isGenerating = false;
 
 // Exposer les fonctions JS à Python via Eel
 eel.expose(onStreamChunk);
@@ -27,12 +28,31 @@ function onStreamEnd() {
     // Le stream est fini, on stocke le message final dans l'historique
     messages.push({role: "assistant", content: currentBotText});
     currentBotMessageElement = null;
+    isGenerating = false;
     
     // On réactive les widgets
     const sendBtn = document.getElementById("send-btn");
     const msgInput = document.getElementById("message-input");
     
-    sendBtn.disabled = msgInput.value.trim().length === 0;
+    // Rétablir l'icône d'envoi
+    sendBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
+
+    // Si le textarea a du texte, on l'active visuellement
+    if (msgInput.value.trim().length > 0) {
+        sendBtn.disabled = false;
+        sendBtn.style.color = "#ffffff";
+        sendBtn.style.backgroundColor = "#ECECEC";
+        sendBtn.style.color = "#000000";
+    } else {
+        sendBtn.disabled = true;
+        sendBtn.style.backgroundColor = "#444";
+        sendBtn.style.color = "#909090";
+    }
+
     msgInput.disabled = false;
     msgInput.focus();
 }
@@ -42,8 +62,25 @@ function onStreamError(err) {
     if(currentBotMessageElement) {
         currentBotMessageElement.innerHTML = marked.parse("`Erreur: " + err + "`");
     }
-    document.getElementById("send-btn").disabled = false;
+    isGenerating = false;
+    const sendBtn = document.getElementById("send-btn");
+    
+    sendBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
+    
     document.getElementById("message-input").disabled = false;
+    if (document.getElementById("message-input").value.trim().length > 0) {
+        sendBtn.disabled = false;
+        sendBtn.style.backgroundColor = "#ECECEC";
+        sendBtn.style.color = "#000000";
+    } else {
+        sendBtn.disabled = true;
+        sendBtn.style.backgroundColor = "#444";
+        sendBtn.style.color = "#909090";
+    }
 }
 
 // --- Logique Front-End ---
@@ -192,9 +229,18 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if (!text || !model) return;
         
-        // Disable UI
-        sendBtn.disabled = true;
-        sendBtn.style.backgroundColor = "#444";
+        isGenerating = true;
+        
+        // Mettre à jour l'apparence du bouton (pour arrêter la génération)
+        sendBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
+            </svg>
+        `;
+        sendBtn.disabled = false; // Le garder actif pour pouvoir cliquer
+        sendBtn.style.backgroundColor = "#c0392b"; // Rouge pour signifier "Arrêter"
+        sendBtn.style.color = "#ffffff";
+        
         messageInput.disabled = true;
         messageInput.value = "";
         messageInput.style.height = "auto";
@@ -217,17 +263,34 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             console.error("Erreur:", error);
             currentBotMessageElement.textContent = "Erreur système: " + error;
-            sendBtn.disabled = false;
+            isGenerating = false;
+            // Retour au bouton normal
+            sendBtn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+            sendBtn.style.backgroundColor = "#444";
+            sendBtn.style.color = "#909090";
             messageInput.disabled = false;
         }
     }
 
-    sendBtn.addEventListener("click", sendMessage);
+    sendBtn.addEventListener("click", () => {
+        if (isGenerating) {
+            // Arrêter la génération
+            eel.abort_generation()();
+        } else {
+            sendMessage();
+        }
+    });
 
     messageInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            sendMessage();
+            if (!isGenerating && !sendBtn.disabled) {
+                sendMessage();
+            }
         }
     });
 });
