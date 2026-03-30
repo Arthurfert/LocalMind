@@ -44,3 +44,6 @@ Thumbs.db
 *.spec
 dist/
 build/
+
+# JSON Chats
+chats/

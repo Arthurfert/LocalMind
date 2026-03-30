@@ -2,7 +2,6 @@
 Client pour interagir avec Ollama API
 """
 import requests
-from PySide6.QtCore import QThread, Signal
 
 
 class OllamaClient:
@@ -16,6 +15,27 @@ class OllamaClient:
     
     def __init__(self, base_url="http://localhost:11434"):
         self.base_url = base_url
+        self.is_aborted = False
+        self.current_response = None
+        
+    def abort(self):
+        """Annule la génération en cours"""
+        print("Mise à jour du flag is_aborted = True")
+        self.is_aborted = True
+        if hasattr(self, 'current_response') and self.current_response:
+            try:
+                # Tente de fermer brutalement le socket TCP sous-jacent pour qu'Ollama s'arrête immédiatement
+                try:
+                    raw_conn = getattr(self.current_response.raw, '_connection', None)
+                    if raw_conn and hasattr(raw_conn, 'sock') and raw_conn.sock:
+                        import socket
+                        raw_conn.sock.shutdown(socket.SHUT_RDWR)
+                except Exception as e:
+                    print(f"Impossible de forcer le shutdown du socket: {e}")
+                    
+                self.current_response.close()
+            except Exception as e:
+                print(f"Erreur lors de la fermeture de la connexion: {e}")
         
     def get_available_models(self):
         """Récupère la liste des modèles disponibles"""
@@ -56,6 +76,8 @@ class OllamaClient:
             # Ajouter le message système au début
             messages_with_system = [{"role": "system", "content": self.SYSTEM_PROMPT}] + messages
             
+            self.is_aborted = False
+            
             payload = {
                 "model": model,
                 "messages": messages_with_system,
@@ -69,62 +91,43 @@ class OllamaClient:
                 timeout=120
             )
             
+            self.current_response = response
+            
             if response.status_code == 200:
                 full_response = ""
                 
-                for line in response.iter_lines():
-                    if line:
-                        try:
-                            data = json.loads(line)
-                            chunk = data.get('message', {}).get('content', '')
-                            if chunk:
-                                full_response += chunk
-                                if chunk_callback:
-                                    chunk_callback.emit(chunk)
-                        except json.JSONDecodeError:
-                            continue
+                try:
+                    for line in response.iter_lines():
+                        if self.is_aborted:
+                            print("Arrêt de la génération car is_aborted est True")
+                            response.close()
+                            break
+                        
+                        if line:
+                            try:
+                                data = json.loads(line)
+                                chunk = data.get('message', {}).get('content', '')
+                                if chunk:
+                                    full_response += chunk
+                                    if chunk_callback:
+                                        chunk_callback(chunk)
+                            except json.JSONDecodeError:
+                                continue
+                except Exception as e:
+                    # Gérer l'erreur si la socket est fermée manuellement par self.current_response.close()
+                    if self.is_aborted:
+                        print("Connexion fermée manuellement.")
+                    else:
+                        print(f"Erreur de lecture du stream: {e}")
+                finally:
+                    self.current_response = None
                 
                 return full_response
             else:
+                self.current_response = None
                 return f"Erreur: {response.status_code}"
                 
         except requests.exceptions.Timeout:
             return "Erreur: La requête a expiré. Le modèle met trop de temps à répondre."
         except Exception as e:
             return f"Erreur: {str(e)}"
-
-
-class OllamaWorker(QThread):
-    """Worker thread pour les requêtes Ollama asynchrones avec streaming"""
-    
-    response_ready = Signal(str)
-    response_chunk = Signal(str)  # Nouveau signal pour les chunks en streaming
-    error_occurred = Signal(str)
-    
-    def __init__(self, client, model, prompt, conversation_history, images=None):
-        super().__init__()
-        self.client = client
-        self.model = model
-        self.prompt = prompt
-        self.conversation_history = conversation_history
-        self.images = images or []  # Liste d'images encodées en base64
-    
-    def run(self):
-        """Exécute la requête dans un thread séparé"""
-        try:
-            # Construire les messages pour l'API chat
-            messages = self.conversation_history.copy()
-            messages.append({"role": "user", "content": self.prompt})
-            
-            # Mode streaming
-            full_response = self.client.chat_stream(
-                self.model, messages, self.response_chunk, 
-                images=self.images if self.images else None
-            )
-            if full_response.startswith("Erreur:"):
-                self.error_occurred.emit(full_response)
-            else:
-                self.response_ready.emit(full_response)
-                
-        except Exception as e:
-            self.error_occurred.emit(f"Erreur inattendue: {str(e)}")
