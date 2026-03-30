@@ -29,8 +29,10 @@ function onStreamEnd() {
     currentBotMessageElement = null;
     
     // On réactive les widgets
-    document.getElementById("send-btn").disabled = false;
+    const sendBtn = document.getElementById("send-btn");
     const msgInput = document.getElementById("message-input");
+    
+    sendBtn.disabled = msgInput.value.trim().length === 0;
     msgInput.disabled = false;
     msgInput.focus();
 }
@@ -44,17 +46,81 @@ function onStreamError(err) {
     document.getElementById("message-input").disabled = false;
 }
 
-// --- Logique Front-End (Initialement gérée par le DOM) ---
+// --- Logique Front-End ---
 
 document.addEventListener("DOMContentLoaded", () => {
     const messageInput = document.getElementById("message-input");
     const sendBtn = document.getElementById("send-btn");
     const modelSelect = document.getElementById("model-select");
-    const refreshBtn = document.getElementById("refresh-models");
     const newChatBtn = document.getElementById("new-chat-btn");
+    const emptyState = document.getElementById("empty-state");
+    const chatMessages = document.getElementById("chat-messages");
+    
+    // Nouveaux éléments pour les fichiers
+    const addFileBtn = document.getElementById("add-file-btn");
+    const fileInput = document.getElementById("file-input");
+    const attachmentsPreview = document.getElementById("attachments-preview");
+    let selectedImagesBase64 = [];
+    
+    const sidebar = document.getElementById("sidebar");
+    const closeSidebarBtn = document.getElementById("close-sidebar-btn");
+    const openSidebarBtn = document.getElementById("open-sidebar-btn");
+
+    // Gestion du volet latéral
+    closeSidebarBtn.addEventListener("click", () => {
+        sidebar.classList.add("collapsed");
+    });
+    openSidebarBtn.addEventListener("click", () => {
+        sidebar.classList.remove("collapsed");
+    });
+
+    // Gestion de l'ajout d'images
+    addFileBtn.addEventListener("click", () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener("change", (e) => {
+        const files = e.target.files;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Enlever le préfixe data:image/...;base64,
+                const base64String = event.target.result.split(',')[1];
+                selectedImagesBase64.push(base64String);
+                
+                // Mettre à jour l'UI avec une petite étiquette
+                const chip = document.createElement("div");
+                chip.className = "attachment-chip";
+                chip.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M14 14L15.586 12.414C15.9611 12.0391 16.4697 11.8284 17 11.8284C17.5303 11.8284 18.0389 12.0391 18.414 12.414L20 14M14 8H14.01M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Image ${selectedImagesBase64.length}
+                    <button type="button" title="Retirer">&times;</button>
+                `;
+                
+                // Gérer la suppression
+                const index = selectedImagesBase64.length - 1;
+                chip.querySelector("button").addEventListener("click", () => {
+                    selectedImagesBase64.splice(index, 1);
+                    chip.remove();
+                });
+                
+                attachmentsPreview.appendChild(chip);
+            };
+            reader.readAsDataURL(file);
+        }
+        // Reset l'input pour pouvoir sélectionner le même fichier deux fois de suite si besoin
+        e.target.value = '';
+    });
 
     function addMessageToUI(role, content) {
-        const chatMessages = document.getElementById("chat-messages");
+        // Cacher le logo si c'est le premier message
+        if (emptyState.style.display !== "none") {
+            emptyState.style.display = "none";
+        }
+
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${role}`;
         
@@ -71,36 +137,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadModels() {
         try {
-            // L'appel à Eel via "eel.fonction_name()()" 
-            // Notez les doubles () : la première renvoie une fonction liée à Python, 
-            // la 2ème l'exécute de manière asynchrone (Promesse).
             const models = await eel.get_models()();
             
             modelSelect.innerHTML = "";
             if (!models || models.length === 0) {
                 const opt = document.createElement("option");
-                opt.textContent = "Aucun modèle local trouvé (Ollama éteint?)";
+                opt.textContent = "Aucun modèle trouvé";
                 modelSelect.appendChild(opt);
+                sendBtn.disabled = true;
             } else {
                 models.forEach(m => {
                     const opt = document.createElement("option");
                     opt.value = m;
-                    opt.textContent = m;
+                    opt.textContent = m; // Affichera le nom brut, ex: 'llama3'
                     modelSelect.appendChild(opt);
                 });
+                // Évalue si on a du texte de prêt pour activer l'envoi
+                sendBtn.disabled = messageInput.value.trim() === "";
             }
         } catch (error) {
             console.error("Erreur de chargement des modèles :", error);
         }
     }
 
-    // Charger les modèles dès l'ouverture de l'application
+    // Auto-resize de l'input box
+    messageInput.addEventListener("input", function() {
+        this.style.height = "auto";
+        this.style.height = (this.scrollHeight) + "px";
+        
+        // Activer / désactiver le bouton d'envoi
+        if(this.value.trim() !== "" && modelSelect.value !== "") {
+            sendBtn.disabled = false;
+            sendBtn.style.color = "#ffffff";
+            sendBtn.style.backgroundColor = "#ECECEC";
+            sendBtn.style.color = "#000000";
+        } else {
+            sendBtn.disabled = true;
+            sendBtn.style.backgroundColor = "#444";
+            sendBtn.style.color = "#909090";
+        }
+    });
+
     loadModels();
-    refreshBtn.addEventListener("click", loadModels);
 
     newChatBtn.addEventListener("click", () => {
         messages = [];
-        document.getElementById("chat-messages").innerHTML = "";
+        chatMessages.innerHTML = "";
+        emptyState.style.display = "flex";
     });
 
     async function sendMessage() {
@@ -109,26 +192,31 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if (!text || !model) return;
         
-        // Désactiver l'interface
+        // Disable UI
         sendBtn.disabled = true;
+        sendBtn.style.backgroundColor = "#444";
         messageInput.disabled = true;
         messageInput.value = "";
+        messageInput.style.height = "auto";
         
-        // Ajouter le message utilisateur dans le Front
+        // User message
         addMessageToUI("user", text);
         messages.push({role: "user", content: text});
         
-        // Préparer un encart pour la réponse du Bot
+        // Bot loading message
         currentBotMessageElement = addMessageToUI("assistant", "...");
         currentBotText = "";
         
+        // Copier les images et vider l'interface avant l'envoi
+        const imagesToSend = selectedImagesBase64.length > 0 ? [...selectedImagesBase64] : null;
+        selectedImagesBase64 = [];
+        attachmentsPreview.innerHTML = "";
+        
         try {
-            // Appeler Python !
-            await eel.send_message(model, messages, null)();
-            // L'envoi va trigger onStreamChunk via Python.
+            await eel.send_message(model, messages, imagesToSend)();
         } catch (error) {
             console.error("Erreur:", error);
-            currentBotMessageElement.textContent = "Erreur (vériez si Ollama est lancé): " + error;
+            currentBotMessageElement.textContent = "Erreur système: " + error;
             sendBtn.disabled = false;
             messageInput.disabled = false;
         }
