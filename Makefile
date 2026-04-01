@@ -4,8 +4,8 @@
 ifeq ($(OS),Windows_NT)
     PYTHON = venv\Scripts\python.exe
     PIP = venv\Scripts\pip.exe
-    RM = rmdir /s /q
-    RM_FILE = del /q
+    RM = python -c "import shutil, sys; [shutil.rmtree(d, ignore_errors=True) for d in sys.argv[1:]]"
+    RM_FILE = python -c "import os, sys; [os.remove(f) if os.path.exists(f) else None for f in sys.argv[1:]]"
 else
     PYTHON = venv/bin/python
     PIP = venv/bin/pip
@@ -38,7 +38,4 @@ build:
 clean:
 	-$(RM) build
 	-$(RM) dist
-	-$(RM) __pycache__
-	-$(RM) core\__pycache__
-	-$(RM) venv
 	-$(RM_FILE) Chatbot.spec
