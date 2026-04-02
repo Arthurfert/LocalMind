@@ -1,87 +1,90 @@
-# Local LLM GUI - Interface Ollama avec Eel (Web)
+# Local LLM GUI - Ollama Interface with Eel (Web)
 
-Une interface desktop moderne, légère et hautement personnalisable (HTML/CSS/JS) pour interagir avec vos modèles de langage locaux via Ollama et Python.
+A modern, lightweight, and highly customizable desktop interface (HTML/CSS/JS) to interact with your local language models via Ollama and Python.
 
-## Prérequis
+## Prerequisites
 
-- Python 3.8 ou supérieur
-- Ollama installé et en cours d'exécution ([Installation Ollama](https://ollama.ai))
-- Un navigateur moderne (Chrome, Edge) pour le rendu de la fenêtre par Eel
-- Un ou plusieurs modèles Ollama téléchargés (ex: `ollama pull llama3`)
+- Python 3.8 or higher
+- Ollama installed and running ([Ollama Installation](https://ollama.ai))
+- A modern browser (Chrome, Edge) for Eel to render the window
+- One or more Ollama models downloaded (e.g., `ollama pull llama3`)
 
-## Fonctionnalités
+## Features
 
-- Interface graphique moderne basée sur des technologies web (Eel)
-- Sélection dynamique des modèles installés
-- Historique de la conversation
-- Streaming des réponses en temps réel (mot à mot)
-- Rendu Markdown dynamique des réponses (grâce à `Marked.js`)
-- Exécution asynchrone (l'interface reste fluide pendant la génération)
-- Mode sombre natif et facilement modifiable via CSS
+- Modern graphical interface based on web technologies (Eel)
+- Dynamic selection of installed models
+- Conversation history
+- Real-time response streaming (word by word)
+- Dynamic Markdown rendering of responses (using `Marked.js`)
+- Asynchronous execution (the interface remains smooth and responsive during generation)
+- Native dark mode, easily customizable via CSS
+- Cool 3D rotating point sphere animation in the empty state
 
-## Installation & Utilisation (avec Makefile)
+## Installation & Usage (with Makefile)
 
-Un `Makefile` est fourni pour simplifier la gestion de l'environnement virtuel, l'installation des dépendances et la compilation de l'exécutable.
+A `Makefile` is provided to simplify virtual environment management, dependency installation, and executable compilation.
 
-### 1. Cloner le repository
+### 1. Clone the repository
 ```bash
 git clone https://github.com/Arthurfert/Local_LLM_GUI.git
 cd Local_LLM_GUI
 ```
 
-### 2. Configurer le projet (Crée le `venv` et installe les modules)
+### 2. Setup the project (Creates the `venv` and installs modules)
 ```bash
 make setup
 ```
 
-### 3. Lancer l'application
+### 3. Run the application
 ```bash
 make run
 ```
 
-### 4. Compiler un exécutable (.exe)
+### 4. Compile an executable (.exe)
 ```bash
 make build
 ```
-*L'exécutable généré se trouvera dans le dossier `dist/`.*
+*The generated executable will be located in the `dist/` folder.*
 
-### Commandes manuelles (si vous n'avez pas `make`)
-Si vous êtes sous Windows et ne possédez pas Make, voici les commandes équivalentes :
+### Manual commands (if you don't have `make`)
+If you are on Windows and don't have Make installed, here are the equivalent commands:
 ```powershell
-# 1. Créer l'environnement et l'activer
+# 1. Create and activate the virtual environment
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 
-# 2. Installer les dépendances
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Lancer l'app
+# 3. Run the app
 python main.py
 
-# 4. Build l'exécutable
+# 4. Build the executable
 python build_exe.py
 ```
 
-## Structure du projet
+## Project Structure
 
 ```text
 Local_LLM_GUI/
-├── main.py                 # Point d'entrée de l'application (Démarrage Eel)
-├── requirements.txt        # Dépendances Python (eel, ollama, etc.)
-├── Makefile                # Raccourcis pour l'installation, le démarrage et le build
-├── build_exe.py            # Création de l'exécutable avec PyInstaller
-├── Chatbot.spec            # Fichier de configuration de PyInstaller
-├── web/                    # Dossier Front-End (Interface UI)
-│   ├── index.html          # Structure de l'application
-│   ├── style.css           # Design et thème visuel
-│   └── script.js           # Logique JS (connectée avec Python)
-├── core/                   # Cœur back-end Python
-│   ├── api.py              # Pont de communication Backend ↔ Frontend
-│   └── ollama_client.py    # Client API pour communiquer avec Ollama
-└── assets/                 # Ressources statiques
-    └── icon.ico            # Icône de l'application
+├── main.py                 # Application entry point (Eel Startup)
+├── requirements.txt        # Python dependencies (eel, ollama, etc.)
+├── Makefile                # Shortcuts for installation, startup, and build
+├── build_exe.py            # Executable creation using PyInstaller
+├── web/                    # Front-End folder (UI Interface)
+│   ├── index.html          # Application structure
+│   ├── style.css           # Design and visual theme
+│   └── js/                 # JavaScript Logic
+│       ├── api.js          # Communication bridge between Backend / Frontend (Eel handlers)
+│       ├── app.js          # Main UI logic and event listeners
+│       └── sphere.js       # Background 3D sphere animation logic
+├── core/                   # Python Back-End Core
+│   ├── api.py              # Backend / Frontend communication bridge
+│   └── ollama_client.py    # API Client to communicate with Ollama
+└── assets/                 # Static resources
+    └── icon.ico            # Application icon
 ```
 
 ## Configuration
-Par défaut, l'application se connecte au démon local d'Ollama sur `http://localhost:11434`.
-Pour modifier l'URL (si votre Ollama est hébergé sur un autre serveur), vous pouvez éditer la valeur de `base_url` dans le fichier `core/ollama_client.py`.
+By default, the application connects to the local Ollama daemon at `http://localhost:11434`.
+To change the URL (if your Ollama is hosted on another server), you can edit the `base_url` value in the `core/ollama_client.py` file.
