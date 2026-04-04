@@ -534,3 +534,51 @@ body {
     background-color: rgba(220, 53, 69, 0.2);
 }
 
+/* Modal des paramètres */
+.settings-group {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.settings-group input {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.settings-group input:focus {
+    border-color: var(--text-secondary);
+}
+
+.confirm-btn {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    border: 1px solid var(--text-primary);
+}
+
+.confirm-btn:hover {
+    background-color: white;
+    color: black;
+}
+
+#greeting-title {
+    font-size: 24px;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+

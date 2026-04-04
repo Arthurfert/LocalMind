@@ -63,6 +63,7 @@
                 <div class="logo-container">
                     <canvas id="sphere-canvas"></canvas>
                 </div>
+                <h2 id="greeting-title"></h2>
                 <p>Commencez une nouvelle discussion</p>
             </div>
 
@@ -117,6 +118,22 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modal des paramètres -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 24px;">Paramètres</h3>
+            <div class="settings-group">
+                <label for="user-name-input">Votre nom :</label>
+                <input type="text" id="user-name-input" placeholder="Ex: Jean">
+            </div>
+            <div class="modal-actions">
+                <button id="close-settings-btn" class="modal-btn cancel-btn">Fermer</button>
+                <button id="save-settings-btn" class="modal-btn confirm-btn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts JS Séparés -->
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>

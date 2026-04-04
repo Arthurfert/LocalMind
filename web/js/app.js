@@ -9,6 +9,70 @@ document.addEventListener("DOMContentLoaded", () => {
     const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
     const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
 
+    // Modal des paramètres
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const closeSettingsBtn = document.getElementById("close-settings-btn");
+    const saveSettingsBtn = document.getElementById("save-settings-btn");
+    const userNameInput = document.getElementById("user-name-input");
+    const greetingTitle = document.getElementById("greeting-title");
+
+    let currentUsername = "";
+
+    async function updateGreeting() {
+        try {
+            const settings = await eel.get_settings()();
+            currentUsername = settings.username || "";
+            const hour = new Date().getHours();
+            const timeGreeting = (hour >= 19 || hour < 5) ? "Bonsoir" : "Bonjour";
+            
+            if (currentUsername.trim() !== "") {
+                greetingTitle.textContent = `${timeGreeting}, ${currentUsername}`;
+            } else {
+                greetingTitle.textContent = timeGreeting;
+            }
+        } catch (error) {
+            console.error("Erreur lors du chargement des paramètres:", error);
+        }
+    }
+    
+    // Initialisation
+    updateGreeting();
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener("click", () => {
+            userNameInput.value = currentUsername;
+            settingsModal.style.display = "flex";
+            void settingsModal.offsetWidth;
+            settingsModal.classList.add("show");
+        });
+    }
+
+    const closeSettings = () => {
+        settingsModal.classList.remove("show");
+        setTimeout(() => {
+            settingsModal.style.display = "none";
+        }, 200);
+    };
+
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener("click", closeSettings);
+
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener("click", async () => {
+            const newName = userNameInput.value.trim();
+            try {
+                let settings = await eel.get_settings()();
+                if (!settings) settings = {};
+                settings.username = newName;
+                await eel.save_settings(settings)();
+                await updateGreeting();
+                closeSettings();
+            } catch (error) {
+                console.error("Erreur lors de l'enregistrement des paramètres:", error);
+            }
+        });
+    }
+
     function showCustomConfirm(callback) {
         deleteModal.style.display = "flex";
         // Force reflow pour l'animation
