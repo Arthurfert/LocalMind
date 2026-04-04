@@ -48,6 +48,12 @@ body {
     margin-left: -260px;
 }
 
+.sidebar-footer {
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+}
+
 .sidebar-header {
     padding: 5px;
     margin-bottom: 10px;
@@ -526,5 +532,175 @@ body {
 
 .delete-btn:hover {
     background-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Modal des paramètres */
+.settings-group {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.settings-group input {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.settings-group input:focus {
+    border-color: var(--text-secondary);
+}
+
+/* Toggle Switch Moderne */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-secondary);
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--text-primary);
+    border-color: var(--text-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+    background-color: var(--bg-main);
+}
+
+.confirm-btn {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+    border: 1px solid var(--text-primary);
+}
+
+.confirm-btn:hover {
+    background-color: white;
+    color: black;
+}
+
+#greeting-title {
+    font-size: 24px;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Paramètres - Onglets & MCP */
+.settings-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.settings-tab {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.settings-tab.active {
+    color: var(--text-primary);
+    background: var(--bg-input);
+}
+
+.settings-tab:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.mcp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.mcp-item {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mcp-info strong {
+    display: block;
+    font-size: 14px;
+}
+
+.mcp-info span {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.mcp-delete-btn {
+    background: transparent;
+    border: none;
+    color: #ff5252;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.mcp-delete-btn:hover {
+    background: rgba(255, 82, 82, 0.1);
 }
 

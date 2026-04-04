@@ -9,6 +9,164 @@ document.addEventListener("DOMContentLoaded", () => {
     const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
     const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
 
+    // Modal des paramètres
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const closeSettingsBtn = document.getElementById("close-settings-btn");
+    const saveSettingsBtn = document.getElementById("save-settings-btn");
+    const userNameInput = document.getElementById("user-name-input");
+    const greetingTitle = document.getElementById("greeting-title");
+
+    // Onglets des paramètres
+    const settingsTabs = document.querySelectorAll(".settings-tab");
+    const settingsTabContents = document.querySelectorAll(".settings-tab-content");
+    
+    settingsTabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            settingsTabs.forEach(t => t.classList.remove("active"));
+            settingsTabContents.forEach(c => c.classList.remove("active"));
+            settingsTabContents.forEach(c => c.style.display = "none");
+            
+            tab.classList.add("active");
+            const content = document.getElementById(`tab-${tab.dataset.tab}`);
+            content.classList.add("active");
+            content.style.display = "block";
+        });
+    });
+
+    // Éléments MCP
+    const mcpServersList = document.getElementById("mcp-servers-list");
+    const mcpEnabledCheckbox = document.getElementById("mcp-enabled-checkbox");
+    const addMcpBtn = document.getElementById("add-mcp-btn");
+    const mcpForm = document.getElementById("mcp-form");
+    const saveMcpServerBtn = document.getElementById("save-mcp-server-btn");
+    const mcpTypeSelect = document.getElementById("mcp-type");
+    const mcpTargetInput = document.getElementById("mcp-target");
+    const mcpTargetLabel = document.getElementById("mcp-target-label");
+
+    let currentUsername = "";
+    let mcpServers = [];
+
+    function renderMcpServers() {
+        mcpServersList.innerHTML = "";
+        if (mcpServers.length === 0) {
+            mcpServersList.innerHTML = "<div style='color: var(--text-secondary); font-size: 14px;'>Aucun serveur configuré.</div>";
+            return;
+        }
+        
+        mcpServers.forEach((server, index) => {
+            const div = document.createElement("div");
+            div.className = "mcp-item";
+            div.innerHTML = `
+                <div class="mcp-info">
+                    <strong>${server.name}</strong>
+                    <span>${server.type === 'stdio' ? 'Commande' : 'URL'}: ${server.target}</span>
+                </div>
+                <button class="mcp-delete-btn" data-index="${index}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            `;
+            
+            div.querySelector(".mcp-delete-btn").addEventListener("click", (e) => {
+                mcpServers.splice(index, 1);
+                renderMcpServers();
+            });
+            mcpServersList.appendChild(div);
+        });
+    }
+
+    mcpTypeSelect.addEventListener("change", () => {
+        mcpTargetLabel.textContent = mcpTypeSelect.value === "stdio" ? "Commande :" : "URL (SSE) :";
+        mcpTargetInput.placeholder = mcpTypeSelect.value === "stdio" ? "Ex: npx mcp-xxx" : "Ex: http://localhost:8000/sse";
+    });
+
+    addMcpBtn.addEventListener("click", () => {
+        mcpForm.style.display = mcpForm.style.display === "none" ? "block" : "none";
+    });
+
+    saveMcpServerBtn.addEventListener("click", () => {
+        const name = document.getElementById("mcp-name").value.trim();
+        const type = mcpTypeSelect.value;
+        const target = mcpTargetInput.value.trim();
+        
+        if (name && target) {
+            mcpServers.push({ name, type, target });
+            document.getElementById("mcp-name").value = "";
+            mcpTargetInput.value = "";
+            mcpForm.style.display = "none";
+            renderMcpServers();
+            eel.connect_mcp_server(name, type, target)();
+        }
+    });
+
+    async function updateGreeting() {
+        try {
+            const settings = await eel.get_settings()();
+            currentUsername = settings.username || "";
+            mcpServers = settings.mcp_servers || [];
+            mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
+            
+            const hour = new Date().getHours();
+            const timeGreeting = (hour >= 19 || hour < 5) ? "Bonsoir" : "Bonjour";
+            
+            if (currentUsername.trim() !== "") {
+                greetingTitle.textContent = `${timeGreeting}, ${currentUsername}`;
+            } else {
+                greetingTitle.textContent = timeGreeting;
+            }
+        } catch (error) {
+            console.error("Erreur lors du chargement des paramètres:", error);
+        }
+    }
+    
+    // Initialisation
+    updateGreeting();
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener("click", async () => {
+            const settings = await eel.get_settings()();
+            mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
+            
+            userNameInput.value = currentUsername;
+            renderMcpServers();
+            settingsModal.style.display = "flex";
+            void settingsModal.offsetWidth;
+            settingsModal.classList.add("show");
+        });
+    }
+
+    const closeSettings = () => {
+        settingsModal.classList.remove("show");
+        setTimeout(() => {
+            settingsModal.style.display = "none";
+            mcpForm.style.display = "none";
+        }, 200);
+    };
+
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener("click", closeSettings);
+
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener("click", async () => {
+            const newName = userNameInput.value.trim();
+            const mcpEnabled = mcpEnabledCheckbox.checked;
+            try {
+                let settings = await eel.get_settings()();
+                if (!settings) settings = {};
+                settings.username = newName;
+                settings.mcp_enabled = mcpEnabled;
+                settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
+                await eel.save_settings(settings)();
+                
+                await updateGreeting();
+                closeSettings();
+            } catch (error) {
+                console.error("Erreur lors de l'enregistrement des paramètres:", error);
+            }
+        });
+    }
+
     function showCustomConfirm(callback) {
         deleteModal.style.display = "flex";
         // Force reflow pour l'animation
