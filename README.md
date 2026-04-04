@@ -1,4 +1,4 @@
-# Local LLM GUI - Ollama Interface with Eel (Web)
+# LocalMind - Ollama Interface with Eel (Web)
 
 A modern, lightweight, and highly customizable desktop interface (HTML/CSS/JS) to interact with your local language models via Ollama and Python.
 
@@ -26,8 +26,8 @@ A `Makefile` is provided to simplify virtual environment management, dependency 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/Arthurfert/Local_LLM_GUI.git
-cd Local_LLM_GUI
+git clone https://github.com/Arthurfert/LocalMind.git
+cd LocalMind
 ```
 
 ### 2. Setup the project (Creates the `venv` and installs modules)
@@ -66,7 +66,7 @@ python build_exe.py
 ## Project Structure
 
 ```text
-Local_LLM_GUI/
+LocalMind/
 ├── main.py                 # Application entry point (Eel Startup)
 ├── requirements.txt        # Python dependencies (eel, ollama, etc.)
 ├── Makefile                # Shortcuts for installation, startup, and build

@@ -1,4 +1,4 @@
-# Makefile pour Local LLM GUI
+# Makefile pour LocalMind
 
 # Détection de l'OS pour utiliser les bons chemins Windows ou Linux/Mac
 ifeq ($(OS),Windows_NT)
