@@ -121,15 +121,59 @@
     
     <!-- Modal des paramètres -->
     <div id="settings-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <h3 style="margin-bottom: 24px;">Paramètres</h3>
-            <div class="settings-group">
-                <label for="user-name-input">Votre nom :</label>
-                <input type="text" id="user-name-input" placeholder="Ex: Jean">
+            
+            <!-- Onglets de navigation dans les paramètres -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="general">Général</button>
+                <button class="settings-tab" data-tab="mcp">Serveurs MCP</button>
             </div>
-            <div class="modal-actions">
+
+            <!-- Contenu Général -->
+            <div class="settings-tab-content active" id="tab-general">
+                <div class="settings-group">
+                    <label for="user-name-input">Votre nom :</label>
+                    <input type="text" id="user-name-input" placeholder="Ex: Jean">
+                </div>
+            </div>
+
+            <!-- Contenu MCP -->
+            <div class="settings-tab-content" id="tab-mcp" style="display: none;">
+                <div class="settings-group">
+                    <label>Serveurs MCP configurés :</label>
+                    <div id="mcp-servers-list" class="mcp-list">
+                        <!-- Liste générée dynamiquement -->
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <button id="add-mcp-btn" class="modal-btn cancel-btn" style="flex: 1;">Ajouter</button>
+                </div>
+
+                <div id="mcp-form" style="display: none; background: var(--bg-input); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                    <div class="settings-group">
+                        <label>Nom :</label>
+                        <input type="text" id="mcp-name" placeholder="Ex: Fichiers Locaux">
+                    </div>
+                    <div class="settings-group">
+                        <label>Type :</label>
+                        <select id="mcp-type" style="padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <option value="stdio">Stdio (Commande)</option>
+                            <option value="http">HTTP / SSE (URL)</option>
+                        </select>
+                    </div>
+                    <div class="settings-group">
+                        <label id="mcp-target-label">Commande :</label>
+                        <input type="text" id="mcp-target" placeholder="Ex: npx -y @modelcontextprotocol/server-filesystem">
+                    </div>
+                    <button id="save-mcp-server-btn" class="modal-btn confirm-btn" style="width: 100%;">Enregistrer ce serveur</button>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 15px;">
                 <button id="close-settings-btn" class="modal-btn cancel-btn">Fermer</button>
-                <button id="save-settings-btn" class="modal-btn confirm-btn">Enregistrer</button>
+                <button id="save-settings-btn" class="modal-btn confirm-btn">Enregistrer tout</button>
             </div>
         </div>
     </div>

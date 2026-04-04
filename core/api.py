@@ -3,6 +3,7 @@ import threading
 import json
 import os
 import time
+import platform
 from core.ollama_client import OllamaClient
 from typing import Any
 
@@ -39,6 +40,14 @@ def save_settings(settings):
     except Exception as e:
         print(f"Erreur lors de la sauvegarde de {SETTINGS_FILE}: {e}")
         return False
+
+@eel.expose
+def connect_mcp_server(name, mcp_type, target):
+    """(Exemple) Logique pour initialiser une connexion à un serveur MCP manuel"""
+    print(f"Tentative de connexion au serveur MCP [{name}] (Type: {mcp_type}) -> {target}")
+    # TODO: Intégrer un vrai client MCP stdio ou http (SSE) ici et gérer son pipeline d'E/S
+    # Le but est de créer la logique pour la lier localement selon le type.
+    return True
 
 @eel.expose
 def get_chats():

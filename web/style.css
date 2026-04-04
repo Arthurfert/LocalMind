@@ -582,3 +582,75 @@ body {
     font-weight: 600;
 }
 
+/* Paramètres - Onglets & MCP */
+.settings-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.settings-tab {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.settings-tab.active {
+    color: var(--text-primary);
+    background: var(--bg-input);
+}
+
+.settings-tab:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.mcp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.mcp-item {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mcp-info strong {
+    display: block;
+    font-size: 14px;
+}
+
+.mcp-info span {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.mcp-delete-btn {
+    background: transparent;
+    border: none;
+    color: #ff5252;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.mcp-delete-btn:hover {
+    background: rgba(255, 82, 82, 0.1);
+}
+
