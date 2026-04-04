@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Éléments MCP
     const mcpServersList = document.getElementById("mcp-servers-list");
+    const mcpEnabledCheckbox = document.getElementById("mcp-enabled-checkbox");
     const addMcpBtn = document.getElementById("add-mcp-btn");
     const mcpForm = document.getElementById("mcp-form");
     const saveMcpServerBtn = document.getElementById("save-mcp-server-btn");
@@ -105,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const settings = await eel.get_settings()();
             currentUsername = settings.username || "";
             mcpServers = settings.mcp_servers || [];
+            mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
             
             const hour = new Date().getHours();
             const timeGreeting = (hour >= 19 || hour < 5) ? "Bonsoir" : "Bonjour";
@@ -123,7 +125,10 @@ document.addEventListener("DOMContentLoaded", () => {
     updateGreeting();
 
     if (settingsBtn) {
-        settingsBtn.addEventListener("click", () => {
+        settingsBtn.addEventListener("click", async () => {
+            const settings = await eel.get_settings()();
+            mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
+            
             userNameInput.value = currentUsername;
             renderMcpServers();
             settingsModal.style.display = "flex";
@@ -145,10 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener("click", async () => {
             const newName = userNameInput.value.trim();
+            const mcpEnabled = mcpEnabledCheckbox.checked;
             try {
                 let settings = await eel.get_settings()();
                 if (!settings) settings = {};
                 settings.username = newName;
+                settings.mcp_enabled = mcpEnabled;
                 settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
                 await eel.save_settings(settings)();
                 

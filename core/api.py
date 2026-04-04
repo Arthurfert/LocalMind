@@ -176,17 +176,22 @@ def send_message(model, messages, images=None):
 
     def run_chat():
         try:
-            # Récupérer les outils actifs depuis le MCPManager
-            mcp_tools = mcp_manager.list_all_tools()
-            payload_tools = []
+            # Récupérer la config pour vérifier si MCP est activé
+            settings = get_settings()
+            mcp_enabled = settings.get("mcp_enabled", False)
 
-            # Map name to exact server location internally
+            # Récupérer les outils actifs depuis le MCPManager
+            payload_tools = []
             tool_server_map = {}
-            for t in mcp_tools:
-                # remove metadata _mcp_server for the payload
-                clean_tool = {"type": t["type"], "function": t["function"]}
-                payload_tools.append(clean_tool)
-                tool_server_map[t["function"]["name"]] = t["_mcp_server"]
+
+            if mcp_enabled:
+                mcp_tools = mcp_manager.list_all_tools()
+                # Map name to exact server location internally
+                for t in mcp_tools:
+                    # remove metadata _mcp_server for the payload
+                    clean_tool = {"type": t["type"], "function": t["function"]}
+                    payload_tools.append(clean_tool)
+                    tool_server_map[t["function"]["name"]] = t["_mcp_server"]
 
             current_messages = list(messages)
 

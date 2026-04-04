@@ -140,6 +140,14 @@
 
             <!-- Contenu MCP -->
             <div class="settings-tab-content" id="tab-mcp" style="display: none;">
+                <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                    <label for="mcp-enabled-checkbox" style="cursor: pointer; margin: 0;">Activer les Serveurs MCP</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mcp-enabled-checkbox">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
                 <div class="settings-group">
                     <label>Serveurs MCP configurés :</label>
                     <div id="mcp-servers-list" class="mcp-list">
