@@ -6,7 +6,7 @@ import PyInstaller.__main__
 import os
 
 # Chemin vers l'icône
-icon_path = os.path.join("assets", "icon.ico")
+icon_path = os.path.join("web/assets", "icon.ico")
 
 # Arguments pour PyInstaller
 PyInstaller.__main__.run(

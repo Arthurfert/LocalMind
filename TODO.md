@@ -11,9 +11,10 @@ It should become a **safe** agentic environnement that you can easily deploy and
 ## In developpment
 
 - Refresh interface
+- MCP
 
 ## Ideas and things to come (*by priority*)
 
 - Add agents, skills
-- Add RAG & MCP
+- Add RAG
 - Add security (validation etc)

@@ -17,8 +17,7 @@ A modern, lightweight, and highly customizable desktop interface (HTML/CSS/JS) t
 - Real-time response streaming (word by word)
 - Dynamic Markdown rendering of responses (using `Marked.js`)
 - Asynchronous execution (the interface remains smooth and responsive during generation)
-- Native dark mode, easily customizable via CSS
-- Cool 3D rotating point sphere animation in the empty state
+- MCP server configuration and usage
 
 ## Installation & Usage (with Makefile)
 
@@ -80,6 +79,7 @@ LocalMind/
 │       └── sphere.js       # Background 3D sphere animation logic
 ├── core/                   # Python Back-End Core
 │   ├── api.py              # Backend / Frontend communication bridge
+│   ├── mcp_client.py       # Stdio Client to communicate with an MCP server
 │   └── ollama_client.py    # API Client to communicate with Ollama
 └── assets/                 # Static resources
     └── icon.ico            # Application icon
