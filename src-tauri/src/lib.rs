@@ -3,7 +3,6 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::{AppHandle, Emitter, State, Manager};
 
@@ -146,7 +145,7 @@ async fn send_message(
     state: State<'_, AppState>,
     model: String,
     messages: Vec<Value>,
-    images: Option<Vec<String>> // not yet supported images mapping in Rust client but defined
+    _images: Option<Vec<String>> // not yet supported images mapping in Rust client but defined
 ) -> Result<(), String> {
     
     // We clone the setup
@@ -163,7 +162,7 @@ async fn send_message(
             let (tools, tool_server_map) = mcp.list_all_tools().await;
             let tools_opt = if tools.is_empty() { None } else { Some(tools) };
 
-            let mut app_clone = app.clone();
+            let app_clone = app.clone();
             let chunk_cb = move |chunk: String| {
                 let _ = app_clone.emit("stream-chunk", chunk);
             };

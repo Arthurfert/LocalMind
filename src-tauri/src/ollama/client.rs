@@ -1,6 +1,6 @@
 use futures_util::StreamExt;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -103,7 +103,7 @@ impl OllamaClient {
         };
 
         let url = format!("{}/api/chat", self.base_url);
-        let mut response = self
+        let response = self
             .client
             .post(&url)
             .json(&payload)
