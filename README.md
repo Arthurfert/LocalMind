@@ -1,27 +1,26 @@
-# LocalMind - Ollama Interface with Eel (Web)
+# LocalMind - Ollama Interface with Tauri (Rust)
 
-A modern, lightweight, and highly customizable desktop interface (HTML/CSS/JS) to interact with your local language models via Ollama and Python.
+A modern, native, and highly customizable desktop interface (HTML/CSS/JS) to interact with your local language models via Ollama and Rust.
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Node.js & npm
+- Rust & Cargo (with MSVC toolchain on Windows)
 - Ollama installed and running ([Ollama Installation](https://ollama.ai))
-- A modern browser (Chrome, Edge) for Eel to render the window
-- One or more Ollama models downloaded (e.g., `ollama pull llama3`)
+- One or more Ollama models downloaded (e.g., ollama pull llama3)
 
 ## Features
 
-- Modern graphical interface based on web technologies (Eel)
+- Modern graphical interface based on web technologies (Vanilla HTML/JS)
+- High performance and very low RAM usage (Tauri/Rust)
 - Dynamic selection of installed models
 - Conversation history
 - Real-time response streaming (word by word)
-- Dynamic Markdown rendering of responses (using `Marked.js`)
+- Dynamic Markdown rendering of responses (using Marked.js)
 - Asynchronous execution (the interface remains smooth and responsive during generation)
 - MCP server configuration and usage
 
-## Installation & Usage (with Makefile)
-
-A `Makefile` is provided to simplify virtual environment management, dependency installation, and executable compilation.
+## Installation & Usage
 
 ### 1. Clone the repository
 ```bash
@@ -29,62 +28,44 @@ git clone https://github.com/Arthurfert/LocalMind.git
 cd LocalMind
 ```
 
-### 2. Setup the project (Creates the `venv` and installs modules)
+### 2. Install Node dependencies
 ```bash
-make setup
+npm install
 ```
 
-### 3. Run the application
+### 3. Run the application in development mode
 ```bash
-make run
+npm run tauri dev
 ```
 
-### 4. Compile an executable (.exe)
+### 4. Build the final executable
 ```bash
-make build
+npm run tauri build
 ```
-*The generated executable will be located in the `dist/` folder.*
-
-### Manual commands (if you don't have `make`)
-If you are on Windows and don't have Make installed, here are the equivalent commands:
-```powershell
-# 1. Create and activate the virtual environment
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Run the app
-python main.py
-
-# 4. Build the executable
-python build_exe.py
-```
+*The generated executable will be located in the src-tauri/target/release/ folder.*
 
 ## Project Structure
 
 ```text
 LocalMind/
-├── main.py                 # Application entry point (Eel Startup)
-├── requirements.txt        # Python dependencies (eel, ollama, etc.)
-├── Makefile                # Shortcuts for installation, startup, and build
-├── build_exe.py            # Executable creation using PyInstaller
-├── web/                    # Front-End folder (UI Interface)
-│   ├── index.html          # Application structure
-│   ├── style.css           # Design and visual theme
-│   └── js/                 # JavaScript Logic
-│       ├── api.js          # Communication bridge between Backend / Frontend (Eel handlers)
-│       ├── app.js          # Main UI logic and event listeners
-│       └── sphere.js       # Background 3D sphere animation logic
-├── core/                   # Python Back-End Core
-│   ├── api.py              # Backend / Frontend communication bridge
-│   ├── mcp_client.py       # Stdio Client to communicate with an MCP server
-│   └── ollama_client.py    # API Client to communicate with Ollama
-└── assets/                 # Static resources
-    └── icon.ico            # Application icon
+├── package.json            # Node.js dependencies and scripts
+├── src-tauri/              # Rust Back-End Core (Tauri)
+│   ├── Cargo.toml          # Rust dependencies
+│   ├── tauri.conf.json     # Tauri configuration
+│   └── src/
+│       ├── main.rs         # Tauri application entry point
+│       ├── lib.rs          # Main Rust logic and IPC handlers
+│       ├── mcp/            # Stdio Client to communicate with an MCP server
+│       └── ollama/         # API Client to communicate with Ollama
+└── web/                    # Front-End folder (UI Interface)
+    ├── index.html          # Application structure
+    ├── style.css           # Design and visual theme
+    └── js/                 # JavaScript Logic
+        ├── api.js          # Communication bridge between Backend / Frontend (Tauri IPC)
+        ├── app.js          # Main UI logic and event listeners
+        └── sphere.js       # Background 3D sphere animation logic
 ```
 
 ## Configuration
-By default, the application connects to the local Ollama daemon at `http://localhost:11434`.
-To change the URL (if your Ollama is hosted on another server), you can edit the `base_url` value in the `core/ollama_client.py` file.
+By default, the application connects to the local Ollama daemon at http://localhost:11434.
+To change the URL (if your Ollama is hosted on another server), you can edit the initialization in the src-tauri/src/lib.rs file.
