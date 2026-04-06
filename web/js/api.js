@@ -1,4 +1,7 @@
-// --- Communication Back-End (Eel) vers Front-End (JavaScript) ---
+// --- Communication Back-End (Tauri IPC) vers Front-End ---
+
+const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 
 var messages = [];
 var currentBotMessageElement = null;
@@ -7,8 +10,17 @@ var isGenerating = false;
 var currentChatId = null;
 var currentChatTitle = "";
 
-// Exposer les fonctions JS à Python via Eel
-eel.expose(onStreamChunk);
+// Écouter les événements de stream de Tauri
+listen('stream-chunk', (event) => {
+    onStreamChunk(event.payload);
+});
+listen('stream-end', () => {
+    onStreamEnd();
+});
+listen('stream-error', (event) => {
+    onStreamError(event.payload);
+});
+
 function onStreamChunk(chunk) {
     if(!currentBotMessageElement) return;
     
@@ -25,7 +37,6 @@ function onStreamChunk(chunk) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-eel.expose(onStreamEnd);
 function onStreamEnd() {
     // Le stream est fini, on stocke le message final dans l'historique
     messages.push({role: "assistant", content: currentBotText});
@@ -35,7 +46,8 @@ function onStreamEnd() {
     // Sauvegarder la discussion
     const dropdownSelected = document.getElementById("dropdown-selected");
     const model = dropdownSelected ? dropdownSelected.textContent : "";
-    eel.save_chat(currentChatId, currentChatTitle, messages, model)(id => {
+    
+    invoke('save_chat', { chatId: currentChatId, title: currentChatTitle, messages: messages, model: model }).then(id => {
         if (id && id !== currentChatId) {
             currentChatId = id;
             // On met à jour l'historique fraîchement
@@ -70,7 +82,6 @@ function onStreamEnd() {
     msgInput.focus();
 }
 
-eel.expose(onStreamError);
 function onStreamError(err) {
     if(currentBotMessageElement) {
         currentBotMessageElement.innerHTML = marked.parse("`Erreur: " + err + "`");
