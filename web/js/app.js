@@ -1,3 +1,4 @@
+// const { invoke } = window.__TAURI__.core; // Already imported by api.js
 // --- Logique Front-End ---
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -97,13 +98,13 @@ document.addEventListener("DOMContentLoaded", () => {
             mcpTargetInput.value = "";
             mcpForm.style.display = "none";
             renderMcpServers();
-            eel.connect_mcp_server(name, type, target)();
+            invoke("connect_mcp_server", { name: name, mcpType: type, target: target });
         }
     });
 
     async function updateGreeting() {
         try {
-            const settings = await eel.get_settings()();
+            const settings = await invoke("get_settings");
             currentUsername = settings.username || "";
             mcpServers = settings.mcp_servers || [];
             mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
@@ -126,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (settingsBtn) {
         settingsBtn.addEventListener("click", async () => {
-            const settings = await eel.get_settings()();
+            const settings = await invoke("get_settings");
             mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
             
             userNameInput.value = currentUsername;
@@ -152,12 +153,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const newName = userNameInput.value.trim();
             const mcpEnabled = mcpEnabledCheckbox.checked;
             try {
-                let settings = await eel.get_settings()();
+                let settings = await invoke("get_settings");
                 if (!settings) settings = {};
                 settings.username = newName;
                 settings.mcp_enabled = mcpEnabled;
                 settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
-                await eel.save_settings(settings)();
+                await invoke("save_settings", { settings: settings });
                 
                 await updateGreeting();
                 closeSettings();
@@ -280,7 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadModels() {
         try {
-            const models = await eel.get_models()();
+            const models = await invoke("get_models");
             
             dropdownOptions.innerHTML = "";
             if (!models || models.length === 0) {
@@ -355,7 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Fonction pour charger une discussion spécifique de l'historique
     window.loadChat = async function(chatId) {
         try {
-            const chatData = await eel.load_chat(chatId)();
+            const chatData = await invoke("load_chat", { chatId: chatId });
             if (chatData) {
                 currentChatId = chatData.id;
                 currentChatTitle = chatData.title;
@@ -385,7 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!historyList) return;
         
         try {
-            const chats = await eel.get_chats()();
+            const chats = await invoke("get_chats");
             historyList.innerHTML = "";
             
             if (chats.length === 0) {
@@ -422,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     e.stopPropagation(); // Évite que le clic n'ouvre la discussion
                     showCustomConfirm(async (confirmed) => {
                         if(confirmed) {
-                            const success = await eel.delete_chat(chat.id)();
+                            const success = await invoke("delete_chat", { chatId: chat.id });
                             if(success) {
                                 if(currentChatId === chat.id) {
                                     document.getElementById("new-chat-btn").click(); // Remise à zéro si c'est la discussion active
@@ -502,7 +503,7 @@ document.addEventListener("DOMContentLoaded", () => {
         attachmentsPreview.innerHTML = "";
         
         try {
-            await eel.send_message(model, messages, imagesToSend)();
+            await invoke("send_message", { model: model, messages: messages, images: imagesToSend || null });
         } catch (error) {
             console.error("Erreur:", error);
             currentBotMessageElement.textContent = "Erreur système: " + error;
@@ -522,7 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sendBtn.addEventListener("click", () => {
         if (isGenerating) {
             // Arrêter la génération
-            eel.abort_generation()();
+            invoke("abort_generation");
         } else {
             sendMessage();
         }
@@ -537,6 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
 
 
 
