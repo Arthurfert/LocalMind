@@ -31,12 +31,19 @@ impl McpManager {
         let program = parts.next().ok_or("Commande vide")?;
         let args: Vec<&str> = parts.collect();
 
-        let mut child = Command::new(program)
-            .args(args)
+        let mut cmd = Command::new(program);
+        cmd.args(args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
+            .stderr(Stdio::null());
+
+        #[cfg(target_os = "windows")]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        let mut child = cmd.spawn()
             .map_err(|e| format!("Erreur au lancement du serveur {}: {}", name, e))?;
 
         let stdin = child.stdin.take().unwrap();
