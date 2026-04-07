@@ -10,10 +10,11 @@ It should become a **safe** agentic environnement that you can easily deploy and
 
 ## In developpment
 
-- Image and Files handling
+- PDF handling
 
 ## Ideas and things to come (*by priority*)
 
 - Add agents, skills
 - Add RAG
-- Add security (validation etc)
+- Add tools security (validation etc)
+- Add STT model

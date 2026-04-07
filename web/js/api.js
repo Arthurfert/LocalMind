@@ -24,13 +24,13 @@ listen('stream-error', (event) => {
 function onStreamChunk(chunk) {
     if(!currentBotMessageElement) return;
     
-    // Si c'est le premier bout, on retire le "..." de chargement
-    if(currentBotText === "" && currentBotMessageElement.innerHTML.includes('...')) {
-        currentBotMessageElement.innerHTML = "";
-    }
-    
     currentBotText += chunk;
-    currentBotMessageElement.innerHTML = marked.parse(currentBotText);
+    const contentDiv = currentBotMessageElement.querySelector('.message-content');
+    if (contentDiv) {
+        contentDiv.innerHTML = marked.parse(currentBotText);
+    } else {
+        currentBotMessageElement.innerHTML = marked.parse(currentBotText);
+    }
     
     // Descendre le scroll
     const chatMessages = document.getElementById("chat-messages");
@@ -38,6 +38,16 @@ function onStreamChunk(chunk) {
 }
 
 function onStreamEnd() {
+    if (window._currentSphereAnimation) {
+        window._currentSphereAnimation.stop();
+        window._currentSphereAnimation = null;
+    }
+    if (currentBotMessageElement) {
+        const sphereContainer = currentBotMessageElement.querySelector('.loading-sphere-container');
+        if (sphereContainer) {
+            sphereContainer.remove();
+        }
+    }
     // Le stream est fini, on stocke le message final dans l'historique
     messages.push({role: "assistant", content: currentBotText});
     currentBotMessageElement = null;
@@ -83,8 +93,20 @@ function onStreamEnd() {
 }
 
 function onStreamError(err) {
+    if (window._currentSphereAnimation) {
+        window._currentSphereAnimation.stop();
+        window._currentSphereAnimation = null;
+    }
     if(currentBotMessageElement) {
-        currentBotMessageElement.innerHTML = marked.parse("`Erreur: " + err + "`");
+        const sphereContainer = currentBotMessageElement.querySelector('.loading-sphere-container');
+        if (sphereContainer) sphereContainer.remove();
+        
+        const contentDiv = currentBotMessageElement.querySelector('.message-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = marked.parse("`Erreur: " + err + "`");
+        } else {
+            currentBotMessageElement.innerHTML = marked.parse("`Erreur: " + err + "`");
+        }
     }
     isGenerating = false;
     const sendBtn = document.getElementById("send-btn");

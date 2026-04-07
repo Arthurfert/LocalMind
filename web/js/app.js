@@ -317,9 +317,9 @@ document.addEventListener("DOMContentLoaded", () => {
         displayContent = displayContent.replace(imageRegex, '');
 
         if(role === 'assistant') {
-            msgDiv.innerHTML = marked.parse(displayContent);
+            msgDiv.innerHTML = `<div class="message-content">${marked.parse(displayContent)}</div>`;
         } else {
-            msgDiv.textContent = displayContent; // texte brut pour l'utilisateur
+            msgDiv.innerHTML = `<div class="message-content">${displayContent}</div>`; // texte brut pour l'utilisateur
         }
 
         // Ajouter les previews sous le message
@@ -534,6 +534,10 @@ document.addEventListener("DOMContentLoaded", () => {
     window.loadHistory();
 
     newChatBtn.addEventListener("click", () => {
+        if (window._currentSphereAnimation) {
+            window._currentSphereAnimation.stop();
+            window._currentSphereAnimation = null;
+        }
         messages = [];
         currentChatId = null;
         currentChatTitle = "";
@@ -592,7 +596,28 @@ document.addEventListener("DOMContentLoaded", () => {
         messages.push(currentMessage);
 
         // Bot loading message
-        currentBotMessageElement = addMessageToUI("assistant", "...");
+        currentBotMessageElement = addMessageToUI("assistant", "");
+        const contentDiv = currentBotMessageElement.querySelector('.message-content');
+        
+        // Ajouter la sphère DANS le message mais en DEHORS du parsing Markdown
+        const sphereContainer = document.createElement('div');
+        sphereContainer.className = 'loading-sphere-container';
+        sphereContainer.innerHTML = "<canvas class='mini-sphere'></canvas>";
+        currentBotMessageElement.appendChild(sphereContainer);
+        
+        // Start miniature animation on it
+        const loadingCanvas = currentBotMessageElement.querySelector('.mini-sphere');
+        if (loadingCanvas && window.startSphereAnimation) {
+            window._currentSphereAnimation = window.startSphereAnimation(loadingCanvas, {
+                width: 30,
+                height: 30,
+                radius: 12,
+                numDots: 100,
+                projScale: 50,
+                dotScale: 1
+            });
+        }
+        
         currentBotText = "";
 
         // Copier les images et vider l'interface avant l'envoi
@@ -604,6 +629,10 @@ document.addEventListener("DOMContentLoaded", () => {
             await invoke("send_message", { model: model, messages: messages, images: imagesToSend || null });
         } catch (error) {
             console.error("Erreur:", error);
+            if (window._currentSphereAnimation) {
+                window._currentSphereAnimation.stop();
+                window._currentSphereAnimation = null;
+            }
             currentBotMessageElement.textContent = "Erreur système: " + error;
             isGenerating = false;
             // Retour au bouton normal

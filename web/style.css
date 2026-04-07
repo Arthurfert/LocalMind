@@ -704,3 +704,19 @@ body {
     background: rgba(255, 82, 82, 0.1);
 }
 
+.loading-sphere-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    height: 30px;
+}
+
+.mini-sphere {
+    display: block;
+    margin: 0;
+    padding: 0;
+    opacity: 0.8;
+}
+
