@@ -204,8 +204,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const addFileBtn = document.getElementById("add-file-btn");
     const fileInput = document.getElementById("file-input");
     const attachmentsPreview = document.getElementById("attachments-preview");
-    var selectedImagesBase64 = [];
-    
+    var selectedFiles = []; // Array of { type: 'image'|'text', data?: base64, name?: string, content?: string }
+
     const sidebar = document.getElementById("sidebar");
     const closeSidebarBtn = document.getElementById("close-sidebar-btn");
     const openSidebarBtn = document.getElementById("open-sidebar-btn");
@@ -227,33 +227,63 @@ document.addEventListener("DOMContentLoaded", () => {
         const files = e.target.files;
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
+            const isImage = file.type.startsWith("image/");
+            const fileNameLower = file.name.toLowerCase();
+            const isText = fileNameLower.endsWith(".txt") || fileNameLower.endsWith(".md");
+            
+            if (!isImage && !isText) {
+                alert(`Le fichier ${file.name} n'est pas supporté pour l'injection directe. Seuls les images, .txt et .md sont autorisés.`);
+                continue;
+            }
+
             const reader = new FileReader();
+
             reader.onload = function(event) {
-                // Enlever le préfixe data:image/...;base64,
-                const base64String = event.target.result.split(',')[1];
-                selectedImagesBase64.push(base64String);
-                
+                let attachment;
+                let itemName = "";
+                if (isImage) {
+                    const base64String = event.target.result.split(',')[1];
+                    attachment = { type: 'image', data: base64String, name: file.name };
+                    itemName = file.name;
+                } else {
+                    attachment = { type: 'text', content: event.target.result, name: file.name };
+                    itemName = file.name;
+                }
+                // Append the common object
+                selectedFiles.push(attachment);
+                const currentIndex = selectedFiles.length - 1;
+
                 // Mettre à jour l'UI avec une petite étiquette
                 const chip = document.createElement("div");
                 chip.className = "attachment-chip";
+                
+                const iconSvg = isImage 
+                    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M14 14L15.586 12.414C15.9611 12.0391 16.4697 11.8284 17 11.8284C17.5303 11.8284 18.0389 12.0391 18.414 12.414L20 14M14 8H14.01M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
                 chip.innerHTML = `
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M14 14L15.586 12.414C15.9611 12.0391 16.4697 11.8284 17 11.8284C17.5303 11.8284 18.0389 12.0391 18.414 12.414L20 14M14 8H14.01M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Image ${selectedImagesBase64.length}
+                    ${iconSvg}
+                    ${itemName}
                     <button type="button" title="Retirer">&times;</button>
                 `;
-                
+
                 // Gérer la suppression
-                const index = selectedImagesBase64.length - 1;
                 chip.querySelector("button").addEventListener("click", () => {
-                    selectedImagesBase64.splice(index, 1);
+                    const idx = selectedFiles.indexOf(attachment);
+                    if (idx > -1) {
+                        selectedFiles.splice(idx, 1);
+                    }
                     chip.remove();
                 });
-                
+
                 attachmentsPreview.appendChild(chip);
             };
-            reader.readAsDataURL(file);
+
+            if (isImage) {
+                reader.readAsDataURL(file);
+            } else {
+                reader.readAsText(file);
+            }
         }
         // Reset l'input pour pouvoir sélectionner le même fichier deux fois de suite si besoin
         e.target.value = '';
@@ -268,10 +298,59 @@ document.addEventListener("DOMContentLoaded", () => {
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${role}`;
         
+        let displayContent = content;
+        const attachedFiles = [];
+
+        // Extraire les fichiers textes
+        const textFileRegex = /\n\n--- (.*?) ---\n[\s\S]*?\n--- Fin de \1 ---/g;
+        let match;
+        while ((match = textFileRegex.exec(content)) !== null) {
+            attachedFiles.push({ name: match[1], type: 'text' });
+        }
+        displayContent = displayContent.replace(textFileRegex, '');
+
+        // Extraire les images
+        const imageRegex = /\n\n\[Image jointe: (.*?)\]/g;
+        while ((match = imageRegex.exec(displayContent)) !== null) {
+            attachedFiles.push({ name: match[1], type: 'image' });
+        }
+        displayContent = displayContent.replace(imageRegex, '');
+
         if(role === 'assistant') {
-            msgDiv.innerHTML = marked.parse(content);
+            msgDiv.innerHTML = marked.parse(displayContent);
         } else {
-            msgDiv.textContent = content; // texte brut pour l'utilisateur
+            msgDiv.textContent = displayContent; // texte brut pour l'utilisateur
+        }
+
+        // Ajouter les previews sous le message
+        if (attachedFiles.length > 0) {
+            const attachmentsContainer = document.createElement("div");
+            attachmentsContainer.style.display = "flex";
+            attachmentsContainer.style.flexWrap = "wrap";
+            attachmentsContainer.style.gap = "8px";
+            attachmentsContainer.style.marginTop = "8px";
+
+            attachedFiles.forEach(file => {
+                const chip = document.createElement("div");
+                chip.className = "attachment-chip";
+                chip.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
+                chip.style.padding = "4px 8px";
+                chip.style.borderRadius = "4px";
+                chip.style.fontSize = "0.85em";
+                chip.style.display = "flex";
+                chip.style.alignItems = "center";
+                chip.style.gap = "6px";
+                chip.style.color = "#ccc";
+
+                const iconSvg = file.type === 'image'
+                    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M14 14L15.586 12.414C15.9611 12.0391 16.4697 11.8284 17 11.8284C17.5303 11.8284 18.0389 12.0391 18.414 12.414L20 14M14 8H14.01M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+                chip.innerHTML = `${iconSvg} ${file.name}`;
+                attachmentsContainer.appendChild(chip);
+            });
+
+            msgDiv.appendChild(attachmentsContainer);
         }
 
         chatMessages.appendChild(msgDiv);
@@ -488,20 +567,39 @@ document.addEventListener("DOMContentLoaded", () => {
         messageInput.disabled = true;
         messageInput.value = "";
         messageInput.style.height = "auto";
+
+        let finalPrompt = text;
+        const imagesToSendLocal = [];
         
+        if (selectedFiles.length > 0) {
+            for (const file of selectedFiles) {
+                if (file.type === 'image') {
+                    imagesToSendLocal.push(file.data);
+                    finalPrompt += `\n\n[Image jointe: ${file.name}]`;
+                } else if (file.type === 'text') {
+                    finalPrompt += `\n\n--- ${file.name} ---\n${file.content}\n--- Fin de ${file.name} ---`;
+                }
+            }
+        }
+
         // User message
-        addMessageToUI("user", text);
-        messages.push({role: "user", content: text});
+        addMessageToUI("user", finalPrompt);
         
+        const currentMessage = { role: "user", content: finalPrompt };
+        if (imagesToSendLocal.length > 0) {
+            currentMessage.images = imagesToSendLocal;
+        }
+        messages.push(currentMessage);
+
         // Bot loading message
         currentBotMessageElement = addMessageToUI("assistant", "...");
         currentBotText = "";
-        
+
         // Copier les images et vider l'interface avant l'envoi
-        const imagesToSend = selectedImagesBase64.length > 0 ? [...selectedImagesBase64] : null;
-        selectedImagesBase64 = [];
+        const imagesToSend = imagesToSendLocal.length > 0 ? imagesToSendLocal : null;
+        selectedFiles = [];
         attachmentsPreview.innerHTML = "";
-        
+
         try {
             await invoke("send_message", { model: model, messages: messages, images: imagesToSend || null });
         } catch (error) {
@@ -538,9 +636,3 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
-
-
-
-
-
-

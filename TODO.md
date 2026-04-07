@@ -10,8 +10,7 @@ It should become a **safe** agentic environnement that you can easily deploy and
 
 ## In developpment
 
-- Refresh interface
-- MCP
+- Image and Files handling
 
 ## Ideas and things to come (*by priority*)
 
