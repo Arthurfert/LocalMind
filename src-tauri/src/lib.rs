@@ -301,6 +301,7 @@ pub fn run() {
                 .setup(|app| {
             let state = app.try_state::<AppState>().unwrap();
             let settings = get_settings();
+            let global_auto_approve = settings.get("mcp_auto_approve").and_then(|a| a.as_bool()).unwrap_or(false);
             if let Some(servers) = settings.get("mcp_servers").and_then(|s| s.as_array()) {
                 for srv in servers {
                     if let (Some(name), Some(t), Some(target)) = (
@@ -311,14 +312,13 @@ pub fn run() {
                         let name_c = name.to_string();
                         let t_c = t.to_string();
                         let target_c = target.to_string();
-                        let auto_approve = srv.get("auto_approve").and_then(|a| a.as_bool()).unwrap_or(false);
                         
                         let mcp_manager = state.mcp_manager.clone();
                         
                         tauri::async_runtime::spawn(async move {
-                            println!("Auto-Init MCP Server: {} {} {} (auto_approve: {})", name_c, t_c, target_c, auto_approve);
+                            println!("Auto-Init MCP Server: {} {} {} (auto_approve: {})", name_c, t_c, target_c, global_auto_approve);
                             if t_c == "stdio" {
-                                let _ = mcp_manager.connect_stdio(name_c, target_c, auto_approve).await;
+                                let _ = mcp_manager.connect_stdio(name_c, target_c, global_auto_approve).await;
                             }
                         });
                     }

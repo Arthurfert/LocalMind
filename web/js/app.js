@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Éléments MCP
     const mcpServersList = document.getElementById("mcp-servers-list");
     const mcpEnabledCheckbox = document.getElementById("mcp-enabled-checkbox");
+    const mcpAutoApproveGlobalCheckbox = document.getElementById("mcp-auto-approve-global");
     const addMcpBtn = document.getElementById("add-mcp-btn");
     const mcpForm = document.getElementById("mcp-form");
     const saveMcpServerBtn = document.getElementById("save-mcp-server-btn");
@@ -58,10 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
         mcpServers.forEach((server, index) => {
             const div = document.createElement("div");
             div.className = "mcp-item";
-            const autoText = server.auto_approve ? `<span style="font-size: 0.7em; background: var(--hover-color); padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Auto</span>` : "";
             div.innerHTML = `
                 <div class="mcp-info">
-                    <strong>${server.name}${autoText}</strong>
+                    <strong>${server.name}</strong>
                     <span>${server.type === 'stdio' ? 'Commande' : 'URL'}: ${server.target}</span>
                 </div>
                 <button class="mcp-delete-btn" data-index="${index}">
@@ -92,16 +92,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = document.getElementById("mcp-name").value.trim();
         const type = mcpTypeSelect.value;
         const target = mcpTargetInput.value.trim();
-        const auto_approve = document.getElementById("mcp-auto-approve").checked;
         
         if (name && target) {
-            mcpServers.push({ name, type, target, auto_approve });
+            mcpServers.push({ name, type, target });
             document.getElementById("mcp-name").value = "";
             mcpTargetInput.value = "";
-            document.getElementById("mcp-auto-approve").checked = false;
             mcpForm.style.display = "none";
             renderMcpServers();
-            invoke("connect_mcp_server", { name: name, mcpType: type, target: target, autoApprove: auto_approve });
+            // Lancement immédiat géré à la sauvegarde globale, ou on peut le relancer ici
+            invoke("connect_mcp_server", { name: name, mcpType: type, target: target, autoApprove: mcpAutoApproveGlobalCheckbox.checked });
         }
     });
 
@@ -111,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
             currentUsername = settings.username || "";
             mcpServers = settings.mcp_servers || [];
             mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
+            mcpAutoApproveGlobalCheckbox.checked = settings.mcp_auto_approve || false;
             
             const hour = new Date().getHours();
             const timeGreeting = (hour >= 19 || hour < 5) ? "Bonsoir" : "Bonjour";
@@ -132,6 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
         settingsBtn.addEventListener("click", async () => {
             const settings = await invoke("get_settings");
             mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
+            mcpAutoApproveGlobalCheckbox.checked = settings.mcp_auto_approve || false;
             
             userNameInput.value = currentUsername;
             renderMcpServers();
@@ -155,11 +156,14 @@ document.addEventListener("DOMContentLoaded", () => {
         saveSettingsBtn.addEventListener("click", async () => {
             const newName = userNameInput.value.trim();
             const mcpEnabled = mcpEnabledCheckbox.checked;
+            const mcpAutoApprove = mcpAutoApproveGlobalCheckbox.checked;
+            
             try {
                 let settings = await invoke("get_settings");
                 if (!settings) settings = {};
                 settings.username = newName;
                 settings.mcp_enabled = mcpEnabled;
+                settings.mcp_auto_approve = mcpAutoApprove;
                 settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
                 await invoke("save_settings", { settings: settings });
                 
@@ -171,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 name: srv.name, 
                                 mcpType: srv.type, 
                                 target: srv.target, 
-                                autoApprove: srv.auto_approve || false 
+                                autoApprove: mcpAutoApprove 
                             });
                         } catch (e) {
                             console.error(`Erreur au redémarrage de ${srv.name}`, e);

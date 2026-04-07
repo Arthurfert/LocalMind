@@ -138,10 +138,18 @@
 
             <!-- Contenu MCP -->
             <div class="settings-tab-content" id="tab-mcp" style="display: none;">
-                <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <label for="mcp-enabled-checkbox" style="cursor: pointer; margin: 0;">Activer les Serveurs MCP</label>
                     <label class="toggle-switch">
                         <input type="checkbox" id="mcp-enabled-checkbox">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                    <label for="mcp-auto-approve-global" style="cursor: pointer; margin: 0;">Enlever la validation des actions (Auto-Approve)</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mcp-auto-approve-global">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -172,13 +180,6 @@
                     <div class="settings-group">
                         <label id="mcp-target-label">Commande :</label>
                         <input type="text" id="mcp-target" placeholder="Ex: npx -y @modelcontextprotocol/server-filesystem">
-                    </div>
-                    <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 15px; margin-top: 10px;">
-                        <label for="mcp-auto-approve" style="cursor: pointer; margin: 0; font-size: 0.9em; flex: 1;">Pas de confirmation des actions (Auto-Approve)</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="mcp-auto-approve">
-                            <span class="toggle-slider"></span>
-                        </label>
                     </div>
                     <button id="save-mcp-server-btn" class="modal-btn confirm-btn" style="width: 100%;">Enregistrer ce serveur</button>
                 </div>
