@@ -20,6 +20,41 @@ listen('stream-end', () => {
 listen('stream-error', (event) => {
     onStreamError(event.payload);
 });
+listen('confirmation-demand', (event) => {
+    onConfirmationDemand(event.payload);
+});
+
+function onConfirmationDemand(payload) {
+    const { id, tool, message } = payload;
+    const modal = document.getElementById("mcp-approval-modal");
+    const textEl = document.getElementById("mcp-approval-text");
+    const confirmBtn = document.getElementById("confirm-approval-btn");
+    const cancelBtn = document.getElementById("cancel-approval-btn");
+    
+    textEl.textContent = `L'outil "${tool}" demande une confirmation :\n\n${message}`;
+    modal.style.display = "flex";
+    void modal.offsetWidth;
+    modal.classList.add("show");
+    
+    const cleanup = () => {
+        modal.classList.remove("show");
+        setTimeout(() => {
+            modal.style.display = "none";
+        }, 200);
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+    };
+    
+    confirmBtn.onclick = () => {
+        cleanup();
+        invoke('resolve_confirmation', { id: id, confirmed: true });
+    };
+    
+    cancelBtn.onclick = () => {
+        cleanup();
+        invoke('resolve_confirmation', { id: id, confirmed: false });
+    };
+}
 
 function onStreamChunk(chunk) {
     if(!currentBotMessageElement) return;

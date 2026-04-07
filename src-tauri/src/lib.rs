@@ -4,7 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::Mutex;
+use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, State, Manager};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 mod ollama;
 use ollama::OllamaClient;
@@ -14,7 +16,10 @@ use mcp::McpManager;
 struct AppState {
     ollama_client: Mutex<OllamaClient>,
     mcp_manager: McpManager,
+    pending_confirmations: Mutex<HashMap<usize, tokio::sync::oneshot::Sender<bool>>>,
 }
+
+static CONFIRMATION_ID: AtomicUsize = AtomicUsize::new(1);
 
 const CHATS_DIR: &str = "chats";
 
@@ -148,7 +153,6 @@ async fn send_message(
     _images: Option<Vec<String>> // not yet supported images mapping in Rust client but defined
 ) -> Result<(), String> {
     
-    // We clone the setup
     let client = state.ollama_client.lock().await.clone();
     let mcp = state.mcp_manager.clone();
     
@@ -185,11 +189,54 @@ async fn send_message(
                         for tc in tool_calls {
                             if let Some(func) = tc.get("function") {
                                 let func_name = func.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                                let args = func.get("arguments").cloned().unwrap_or(serde_json::json!({}));
+                                let mut args = func.get("arguments").cloned().unwrap_or(serde_json::json!({}));
                                 
                                 if let Some(server_name) = tool_server_map.get(func_name) {
                                     println!("-> Appel fonction MCP: {} sur {}", func_name, server_name);
-                                    let res = mcp.call_tool(server_name, func_name, args).await;
+                                    let mut res = mcp.call_tool(server_name, func_name, args.clone()).await;
+                                    
+                                    // Gestion de la demande de confirmation
+                                    if let Some(r) = &res {
+                                        if let Some(demand) = r.get("confirmation_demand").and_then(|d| d.as_str()) {
+                                            println!("-> Demande de confirmation reçue : {}", demand);
+                                            let req_id = CONFIRMATION_ID.fetch_add(1, Ordering::SeqCst);
+                                            let (tx, rx) = tokio::sync::oneshot::channel();
+                                            
+                                            // Ajout du sender dans l'état
+                                            if let Some(s) = app.try_state::<AppState>() {
+                                                let mut pending = s.pending_confirmations.lock().await;
+                                                pending.insert(req_id, tx);
+                                            }
+                                            
+                                            // Emit to frontend (id, tool_name, demand)
+                                            let _ = app.emit("confirmation-demand", serde_json::json!({
+                                                "id": req_id,
+                                                "tool": func_name,
+                                                "message": demand
+                                            }));
+                                            
+                                            // Attendre la réponse
+                                            if let Ok(confirmed) = rx.await {
+                                                if confirmed {
+                                                    println!("-> Confirmed by user.");
+                                                    // Add auto-approve to the args or just a dummy field to signify it was approved by the UI
+                                                    // Depending on specific MCP logic. Let's just run it again with `_auto_approve_by_user: true` (or the tool handles it implicitly).
+                                                    // the user said "it is currently coded as an LLM response `confirmed`"
+                                                    if let Some(obj) = args.as_object_mut() {
+                                                        obj.insert("confirmed".to_string(), serde_json::json!(true));
+                                                    }
+                                                    // Recall tool
+                                                    res = mcp.call_tool(server_name, func_name, args.clone()).await;
+                                                } else {
+                                                    println!("-> Refused by user.");
+                                                    res = Some(serde_json::json!({
+                                                        "content": [{"type": "text", "text": "L'utilisateur a refusé l'exécution de cet outil."}],
+                                                        "isError": true
+                                                    }));
+                                                }
+                                            }
+                                        }
+                                    }
                                     
                                     current_messages.push(serde_json::json!({
                                         "role": "tool",
@@ -223,10 +270,19 @@ async fn send_message(
 }
 
 #[tauri::command]
-async fn connect_mcp_server(state: State<'_, AppState>, name: String, mcp_type: String, target: String) -> Result<bool, String> {
-    println!("Init MCP Server: {} {} {}", name, mcp_type, target);
+async fn resolve_confirmation(state: State<'_, AppState>, id: usize, confirmed: bool) -> Result<(), String> {
+    let mut pending = state.pending_confirmations.lock().await;
+    if let Some(tx) = pending.remove(&id) {
+        let _ = tx.send(confirmed);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn connect_mcp_server(state: State<'_, AppState>, name: String, mcp_type: String, target: String, auto_approve: bool) -> Result<bool, String> {
+    println!("Init MCP Server: {} {} {} (auto_approve: {})", name, mcp_type, target, auto_approve);
     if mcp_type == "stdio" {
-        state.mcp_manager.connect_stdio(name, target).await
+        state.mcp_manager.connect_stdio(name, target, auto_approve).await
     } else {
         println!("Support HTTP/SSE MCP non implémenté en Rust pour le moment.");
         Ok(false)
@@ -240,6 +296,7 @@ pub fn run() {
         .manage(AppState {
             ollama_client: Mutex::new(OllamaClient::new("http://localhost:11434")),
             mcp_manager: McpManager::new(),
+            pending_confirmations: Mutex::new(HashMap::new()),
         })
                 .setup(|app| {
             let state = app.try_state::<AppState>().unwrap();
@@ -254,12 +311,14 @@ pub fn run() {
                         let name_c = name.to_string();
                         let t_c = t.to_string();
                         let target_c = target.to_string();
+                        let auto_approve = srv.get("auto_approve").and_then(|a| a.as_bool()).unwrap_or(false);
+                        
                         let mcp_manager = state.mcp_manager.clone();
                         
                         tauri::async_runtime::spawn(async move {
-                            println!("Auto-Init MCP Server: {} {} {}", name_c, t_c, target_c);
+                            println!("Auto-Init MCP Server: {} {} {} (auto_approve: {})", name_c, t_c, target_c, auto_approve);
                             if t_c == "stdio" {
-                                let _ = mcp_manager.connect_stdio(name_c, target_c).await;
+                                let _ = mcp_manager.connect_stdio(name_c, target_c, auto_approve).await;
                             }
                         });
                     }
@@ -278,7 +337,8 @@ pub fn run() {
             get_models,
             abort_generation,
             send_message,
-            connect_mcp_server
+            connect_mcp_server,
+            resolve_confirmation
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

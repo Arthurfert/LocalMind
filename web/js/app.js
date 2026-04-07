@@ -58,9 +58,10 @@ document.addEventListener("DOMContentLoaded", () => {
         mcpServers.forEach((server, index) => {
             const div = document.createElement("div");
             div.className = "mcp-item";
+            const autoText = server.auto_approve ? `<span style="font-size: 0.7em; background: var(--hover-color); padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Auto</span>` : "";
             div.innerHTML = `
                 <div class="mcp-info">
-                    <strong>${server.name}</strong>
+                    <strong>${server.name}${autoText}</strong>
                     <span>${server.type === 'stdio' ? 'Commande' : 'URL'}: ${server.target}</span>
                 </div>
                 <button class="mcp-delete-btn" data-index="${index}">
@@ -91,14 +92,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = document.getElementById("mcp-name").value.trim();
         const type = mcpTypeSelect.value;
         const target = mcpTargetInput.value.trim();
+        const auto_approve = document.getElementById("mcp-auto-approve").checked;
         
         if (name && target) {
-            mcpServers.push({ name, type, target });
+            mcpServers.push({ name, type, target, auto_approve });
             document.getElementById("mcp-name").value = "";
             mcpTargetInput.value = "";
+            document.getElementById("mcp-auto-approve").checked = false;
             mcpForm.style.display = "none";
             renderMcpServers();
-            invoke("connect_mcp_server", { name: name, mcpType: type, target: target });
+            invoke("connect_mcp_server", { name: name, mcpType: type, target: target, autoApprove: auto_approve });
         }
     });
 
@@ -160,6 +163,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
                 await invoke("save_settings", { settings: settings });
                 
+                // Restart servers with new settings
+                if (mcpEnabled) {
+                    for (const srv of mcpServers) {
+                        try {
+                            await invoke("connect_mcp_server", { 
+                                name: srv.name, 
+                                mcpType: srv.type, 
+                                target: srv.target, 
+                                autoApprove: srv.auto_approve || false 
+                            });
+                        } catch (e) {
+                            console.error(`Erreur au redémarrage de ${srv.name}`, e);
+                        }
+                    }
+                }
+
                 await updateGreeting();
                 closeSettings();
             } catch (error) {

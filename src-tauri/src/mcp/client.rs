@@ -26,10 +26,14 @@ impl McpManager {
         }
     }
 
-    pub async fn connect_stdio(&self, name: String, command: String) -> Result<bool, String> {
+    pub async fn connect_stdio(&self, name: String, command: String, auto_approve: bool) -> Result<bool, String> {
         let mut parts = command.split_whitespace();
         let program = parts.next().ok_or("Commande vide")?;
-        let args: Vec<&str> = parts.collect();
+        let mut args: Vec<&str> = parts.collect();
+
+        if auto_approve {
+            args.push("--auto-approve");
+        }
 
         let mut cmd = Command::new(program);
         cmd.args(args)
