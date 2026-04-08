@@ -10,7 +10,6 @@ It should become a **safe** agentic environnement that you can easily deploy and
 
 ## In developpment
 
-- Location of the model
 - PDF handling
 
 ## Ideas and things to come (*by priority*)

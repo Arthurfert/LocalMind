@@ -11,14 +11,9 @@ A modern, native, and highly customizable desktop interface (HTML/CSS/JS) to int
 
 ## Features
 
-- Modern graphical interface based on web technologies (Vanilla HTML/JS)
-- High performance and very low RAM usage (Tauri/Rust)
-- Dynamic selection of installed models
-- Conversation history
-- Real-time response streaming (word by word)
-- Dynamic Markdown rendering of responses (using Marked.js)
-- Asynchronous execution (the interface remains smooth and responsive during generation)
-- MCP server configuration and usage
+- **Lightweight & Fast:** Built with Tauri (Rust) and Vanilla Web Technologies for low RAM usage and responsive asynchronous execution.
+- **Smart Chat Interface:** Real-time streaming, dynamic Markdown rendering, conversation history, and on-the-fly model selection.
+- **Advanced MCP Integration:** Connect MCP servers and dynamically switch the AI's working directory directly from the UI to precisely control tool execution contexts.
 
 ## Installation & Usage
 
