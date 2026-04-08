@@ -125,6 +125,20 @@ function onStreamEnd() {
 
     msgInput.disabled = false;
     msgInput.focus();
+
+    // Mettre à jour l'indicateur de répertoire après chaque exécution d'outil potentielle
+    try {
+        window.__TAURI__.core.invoke('get_current_dir').then(dir => {
+            const locPath = document.getElementById('model-location-path');
+            if (locPath) {
+                const parts = dir.split(/[/\\]/);
+                const base = parts.pop() || dir;
+                const prefix = parts.length > 0 ? parts.join('\\') + '\\' : '';
+                locPath.innerHTML = `<span class="path-prefix">${prefix}</span><span class="path-base">${base}</span>`;
+                locPath.parentElement.title = dir;
+            }
+        }).catch(err => console.error(err));
+    } catch(e) {}
 }
 
 function onStreamError(err) {

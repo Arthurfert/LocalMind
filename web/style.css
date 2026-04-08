@@ -195,6 +195,62 @@ body {
     pointer-events: auto;
 }
 
+/* Modèle Location Indicator */
+.model-location {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background-color: var(--bg-input);
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    z-index: 50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.model-location:hover {
+    background-color: var(--bg-input-hover);
+    color: var(--text-primary);
+}
+
+#model-location-path {
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 500px;
+}
+
+.path-prefix {
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    white-space: pre;
+    text-overflow: ellipsis;
+}
+
+.model-location:hover .path-prefix {
+    max-width: 350px;
+    opacity: 1;
+}
+
+.path-base {
+    white-space: pre;
+    font-weight: 500;
+}
+
+.model-location svg {
+    flex-shrink: 0;
+}
+
 /* Empty State Logo */
 .empty-state {
     position: absolute;

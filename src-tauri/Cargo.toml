@@ -27,5 +27,6 @@ futures-util = "0.3.32"
 tokio = { version = "1.51.0", features = ["io-util", "process", "sync"] }
 base64 = "0.22.1"
 reqwest = { version = "0.13.2", default-features = false, features = ["native-tls", "json", "stream"] }
+tauri-plugin-dialog = "2"
 
 
