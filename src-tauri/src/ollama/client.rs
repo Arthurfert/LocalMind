@@ -88,10 +88,13 @@ impl OllamaClient {
             );
         }
 
-        messages.insert(0, serde_json::json!({
-            "role": "system",
-            "content": system_prompt
-        }));
+        messages.insert(
+            0,
+            serde_json::json!({
+                "role": "system",
+                "content": system_prompt
+            }),
+        );
 
         self.is_aborted.store(false, Ordering::SeqCst);
 
@@ -131,11 +134,14 @@ impl OllamaClient {
                         for line in text.lines().filter(|l| !l.is_empty()) {
                             if let Ok(json) = serde_json::from_str::<Value>(line) {
                                 if let Some(msg) = json.get("message") {
-                                    if let Some(chunk) = msg.get("content").and_then(|c| c.as_str()) {
+                                    if let Some(chunk) = msg.get("content").and_then(|c| c.as_str())
+                                    {
                                         full_response.push_str(chunk);
                                         chunk_callback(chunk.to_string());
                                     }
-                                    if let Some(tc) = msg.get("tool_calls").and_then(|t| t.as_array()) {
+                                    if let Some(tc) =
+                                        msg.get("tool_calls").and_then(|t| t.as_array())
+                                    {
                                         tool_calls.extend(tc.clone());
                                     }
                                 }

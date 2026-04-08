@@ -1,10 +1,10 @@
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{ChildStdin, ChildStdout, Command};
 use tokio::sync::Mutex;
-use serde_json::{json, Value};
 
 pub struct McpServer {
     #[allow(dead_code)]
@@ -26,7 +26,12 @@ impl McpManager {
         }
     }
 
-    pub async fn connect_stdio(&self, name: String, command: String, auto_approve: bool) -> Result<bool, String> {
+    pub async fn connect_stdio(
+        &self,
+        name: String,
+        command: String,
+        auto_approve: bool,
+    ) -> Result<bool, String> {
         let mut parts = command.split_whitespace();
         let program = parts.next().ok_or("Commande vide")?;
         let mut args: Vec<&str> = parts.collect();
@@ -47,7 +52,8 @@ impl McpManager {
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
 
-        let mut child = cmd.spawn()
+        let mut child = cmd
+            .spawn()
             .map_err(|e| format!("Erreur au lancement du serveur {}: {}", name, e))?;
 
         let stdin = child.stdin.take().unwrap();
@@ -83,7 +89,7 @@ impl McpManager {
                 let _ = stdin_lock.write_all(out.as_bytes()).await;
                 let _ = stdin_lock.flush().await;
             } // stdin_lock goes out of scope here
-            
+
             self.servers.lock().await.insert(name.clone(), server_arc);
             println!("Serveur MCP '{}' prêt", name);
             Ok(true)
@@ -135,7 +141,7 @@ impl McpManager {
         let mut tools_formatted = Vec::new();
         let mut map = HashMap::new();
         let servers = self.servers.lock().await;
-        
+
         for (name, server) in servers.iter() {
             let req = json!({
                 "jsonrpc": "2.0",
@@ -143,12 +149,24 @@ impl McpManager {
                 "method": "tools/list"
             });
             if let Some(res) = Self::send_request(server, req).await {
-                if let Some(tools) = res.get("result").and_then(|r| r.get("tools")).and_then(|t| t.as_array()) {
+                if let Some(tools) = res
+                    .get("result")
+                    .and_then(|r| r.get("tools"))
+                    .and_then(|t| t.as_array())
+                {
                     for tool in tools {
-                        let t_name = tool.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
-                        let desc = tool.get("description").and_then(|d| d.as_str()).unwrap_or("").to_string();
+                        let t_name = tool
+                            .get("name")
+                            .and_then(|n| n.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let desc = tool
+                            .get("description")
+                            .and_then(|d| d.as_str())
+                            .unwrap_or("")
+                            .to_string();
                         let params = tool.get("inputSchema").cloned().unwrap_or(json!({}));
-                        
+
                         map.insert(t_name.clone(), name.clone());
                         tools_formatted.push(json!({
                             "type": "function",
@@ -165,10 +183,15 @@ impl McpManager {
         (tools_formatted, map)
     }
 
-    pub async fn call_tool(&self, server_name: &str, tool_name: &str, args: Value) -> Option<Value> {
+    pub async fn call_tool(
+        &self,
+        server_name: &str,
+        tool_name: &str,
+        args: Value,
+    ) -> Option<Value> {
         let servers = self.servers.lock().await;
         let server = servers.get(server_name)?;
-        
+
         let req = json!({
             "jsonrpc": "2.0",
             "id": Self::next_id(server).await,
@@ -178,7 +201,7 @@ impl McpManager {
                 "arguments": args
             }
         });
-        
+
         if let Some(res) = Self::send_request(server, req).await {
             return res.get("result").cloned();
         }

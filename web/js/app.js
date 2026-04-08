@@ -145,6 +145,67 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
     updateLocationIndicator();
+    
+    // Rendre l'indicateur cliquable pour changer de dossier
+    const locationIndicator = document.getElementById('model-location-indicator');
+    if (locationIndicator) {
+        locationIndicator.style.cursor = 'pointer';
+        locationIndicator.addEventListener('click', async () => {
+            try {
+                // Utiliser l'API dialog pour choisir un dossier
+                const { open } = window.__TAURI__.dialog;
+                const newDir = await open({
+                    directory: true,
+                    multiple: false,
+                    title: "Choisir le dossier d'exécution de l'IA"
+                });
+                
+                if (newDir) {
+                    await window.__TAURI__.core.invoke('change_current_dir', { newPath: newDir });
+                    await updateLocationIndicator();
+                    
+                    // Informer le modèle du changement s'il y a un historique (via api.js if possible)
+                    if (typeof messages !== 'undefined') {
+                        messages.push({
+                            role: "system",
+                            content: `[Notification Système] Le dossier de travail courant a été modifié par l'utilisateur. Le nouveau dossier est: ${newDir}. Tu dois IMPÉRATIVEMENT utiliser ce chemin comme argument 'cwd' de tes outils ou en tant que racine pour construire les chemins absolus (fichiers, recherches). Ne présume plus de l'ancien dossier.`
+                        });
+                        
+                        // Optionnel : afficher un petit message temporaire dans le chat UI
+                        const chatMessages = document.getElementById("chat-messages");
+                        if (chatMessages && messages.length > 0) {
+                            const notif = document.createElement("div");
+                            notif.style.textAlign = "center";
+                            notif.style.fontSize = "12px";
+                            notif.style.color = "var(--accent)";
+                            notif.style.margin = "10px 0";
+                            notif.textContent = `Dossier de travail et serveurs d'outils redémarrés vers : ${newDir}`;
+                            chatMessages.appendChild(notif);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    }
+
+                    // Relancer les serveurs MCP pour qu'ils héritent du nouveau dossier !
+                    if (mcpEnabledCheckbox.checked) {
+                        for (const srv of mcpServers) {
+                            try {
+                                await window.__TAURI__.core.invoke("connect_mcp_server", { 
+                                    name: srv.name, 
+                                    mcpType: srv.type, 
+                                    target: srv.target, 
+                                    autoApprove: mcpAutoApproveGlobalCheckbox.checked 
+                                });
+                            } catch (e) {
+                                console.error(`Erreur au redémarrage de ${srv.name}`, e);
+                            }
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error("Erreur lors du changement de dossier:", e);
+            }
+        });
+    }
 
     if (settingsBtn) {
         settingsBtn.addEventListener("click", async () => {
