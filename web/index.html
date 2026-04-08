@@ -194,10 +194,10 @@
     
     <!-- Modal d'approbation d'action MCP -->
     <div id="mcp-approval-modal" class="modal-overlay" style="display: none; z-index: 2000;">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 600px;">
             <h3>Demande d'autorisation système</h3>
             <p id="mcp-approval-text">L'outil souhaite effectuer une action. Autorisez-vous l'exécution ?</p>
-            <div class="modal-actions" style="margin-top: 20px;">
+            <div class="modal-actions" style="margin-top: 20px; flex-shrink: 0;">
                 <button id="cancel-approval-btn" class="modal-btn cancel-btn">Refuser</button>
                 <button id="confirm-approval-btn" class="modal-btn confirm-btn">Autoriser</button>
             </div>
