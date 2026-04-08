@@ -130,6 +130,14 @@ fn delete_chat(chat_id: String) -> bool {
     fs::remove_file(filename).is_ok()
 }
 
+#[tauri::command]
+fn get_current_dir() -> String {
+    match std::env::current_dir() {
+        Ok(path) => path.to_string_lossy().into_owned(),
+        Err(_) => String::from("Inconnu"),
+    }
+}
+
 // -- API LLM & MCP --
 #[tauri::command]
 async fn get_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
@@ -334,6 +342,7 @@ pub fn run() {
             load_chat,
             save_chat,
             delete_chat,
+            get_current_dir,
             get_models,
             abort_generation,
             send_message,

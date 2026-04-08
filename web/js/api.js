@@ -125,6 +125,17 @@ function onStreamEnd() {
 
     msgInput.disabled = false;
     msgInput.focus();
+
+    // Mettre à jour l'indicateur de répertoire après chaque exécution d'outil potentielle
+    try {
+        window.__TAURI__.core.invoke('get_current_dir').then(dir => {
+            const locPath = document.getElementById('model-location-path');
+            if (locPath) {
+                locPath.textContent = dir;
+                locPath.title = dir;
+            }
+        }).catch(err => console.error(err));
+    } catch(e) {}
 }
 
 function onStreamError(err) {

@@ -195,6 +195,32 @@ body {
     pointer-events: auto;
 }
 
+/* Modèle Location Indicator */
+.model-location {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background-color: var(--bg-input);
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    z-index: 50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    white-space: nowrap;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid var(--border-color);
+}
+
+.model-location svg {
+    flex-shrink: 0;
+}
+
 /* Empty State Logo */
 .empty-state {
     position: absolute;

@@ -128,6 +128,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initialisation
     updateGreeting();
 
+    async function updateLocationIndicator() {
+        try {
+            const locPath = document.getElementById('model-location-path');
+            if (!locPath) return;
+            const dir = await window.__TAURI__.core.invoke('get_current_dir');
+            locPath.textContent = dir;
+            locPath.title = dir;
+        } catch (e) {
+            console.error("Erreur gcwd:", e);
+        }
+    }
+    updateLocationIndicator();
+
     if (settingsBtn) {
         settingsBtn.addEventListener("click", async () => {
             const settings = await invoke("get_settings");

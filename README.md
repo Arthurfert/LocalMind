@@ -7,7 +7,7 @@ A modern, native, and highly customizable desktop interface (HTML/CSS/JS) to int
 - Node.js & npm
 - Rust & Cargo (with MSVC toolchain on Windows)
 - Ollama installed and running ([Ollama Installation](https://ollama.ai))
-- One or more Ollama models downloaded (e.g., ollama pull llama3)
+- One or more Ollama models downloaded (e.g., `ollama pull llama3`)
 
 ## Features
 
