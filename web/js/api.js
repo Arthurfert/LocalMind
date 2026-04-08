@@ -131,8 +131,11 @@ function onStreamEnd() {
         window.__TAURI__.core.invoke('get_current_dir').then(dir => {
             const locPath = document.getElementById('model-location-path');
             if (locPath) {
-                locPath.textContent = dir;
-                locPath.title = dir;
+                const parts = dir.split(/[/\\]/);
+                const base = parts.pop() || dir;
+                const prefix = parts.length > 0 ? parts.join('\\') + '\\' : '';
+                locPath.innerHTML = `<span class="path-prefix">${prefix}</span><span class="path-base">${base}</span>`;
+                locPath.parentElement.title = dir;
             }
         }).catch(err => console.error(err));
     } catch(e) {}
