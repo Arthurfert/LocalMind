@@ -5,11 +5,7 @@ use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-pub const SYSTEM_PROMPT: &str = r#"You are a helpful assistant. Follow these formatting rules:
-- Use Markdown formatting for your responses (headers, bold, italic, lists, code blocks).
-- For mathematical formulas, use LaTeX syntax with $ for inline math and $$ for display math.
-- Examples: inline $E = mc^2$, display $$\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
-- Always wrap mathematical expressions in $ or $$ delimiters."#;
+pub const SYSTEM_PROMPT_TEMPLATE: &str = include_str!("system-prompt.md");
 
 #[derive(Clone)]
 pub struct OllamaClient {
@@ -79,13 +75,19 @@ impl OllamaClient {
         F: FnMut(String) + Send,
     {
         // Construction du message système et ajout en première position
-        let mut system_prompt = SYSTEM_PROMPT.to_string();
+        let current_date = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let mut system_prompt = SYSTEM_PROMPT_TEMPLATE
+            .replace("{model_name}", model)
+            .replace("{current_date}", &current_date);
+
         if let Some(ref t) = tools {
             let tools_json = serde_json::to_string_pretty(t).unwrap_or_default();
-            system_prompt = format!(
-                "{}\n\nYou have access to the following functions/tools :\n```json\n{}\n```\nDo not hesitate to use them if necessary to answer the user's request.",
-                system_prompt, tools_json
+            system_prompt = system_prompt.replace(
+                "{tools_info}",
+                &tools_json
             );
+        } else {
+            system_prompt = system_prompt.replace("{tools_info}", "None");
         }
 
         messages.insert(
