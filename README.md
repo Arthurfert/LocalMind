@@ -23,7 +23,8 @@ git clone https://github.com/Arthurfert/LocalMind.git
 cd LocalMind
 ```
 
-> [!TIP] Run `make help` to use the Makefile
+> [!TIP]
+> Run `make help` to use the Makefile
 
 Otherwise, use the following commands :
 ### 2. Install Node dependencies
