@@ -15,8 +15,6 @@ A modern, native, and highly customizable desktop interface (HTML/CSS/JS) to int
 - **Smart Chat Interface:** Real-time streaming, dynamic Markdown rendering, conversation history, and on-the-fly model selection.
 - **Advanced MCP Integration:** Connect MCP servers and dynamically switch the AI's working directory directly from the UI to precisely control tool execution contexts.
 
-*The MCP integration was primarily developped for [my own MCP server](https://github.com/Arthurfert/MCP-server) logic.*
-
 ## Installation & Usage
 
 ### 1. Clone the repository
@@ -25,6 +23,9 @@ git clone https://github.com/Arthurfert/LocalMind.git
 cd LocalMind
 ```
 
+> [!NOTE] Run `make help` to use the Makefile
+
+Otherwise, use the following commands :
 ### 2. Install Node dependencies
 ```bash
 npm install
