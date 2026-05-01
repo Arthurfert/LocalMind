@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -21,7 +21,16 @@ struct AppState {
 
 static CONFIRMATION_ID: AtomicUsize = AtomicUsize::new(1);
 
-const CHATS_DIR: &str = "chats";
+// Retourne le chemin absolu du dossier chats à côté de l'exécutable
+fn get_chats_dir() -> PathBuf {
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            return parent.join("chats");
+        }
+    }
+    // Fallback au répertoire courant
+    PathBuf::from("chats")
+}
 
 // -- Paramètres (Settings.json) --
 #[tauri::command]
@@ -61,7 +70,7 @@ struct ChatInfo {
 #[tauri::command]
 fn get_chats() -> Vec<ChatInfo> {
     let mut chats = Vec::new();
-    let path = Path::new(CHATS_DIR);
+    let path = get_chats_dir();
 
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.flatten() {
@@ -94,8 +103,8 @@ fn get_chats() -> Vec<ChatInfo> {
 
 #[tauri::command]
 fn load_chat(chat_id: String) -> Value {
-    let path_str = format!("{}/{}.json", CHATS_DIR, chat_id);
-    if let Ok(content) = fs::read_to_string(path_str) {
+    let path = get_chats_dir().join(format!("{}.json", chat_id));
+    if let Ok(content) = fs::read_to_string(path) {
         if let Ok(json) = serde_json::from_str(&content) {
             return json;
         }
@@ -105,7 +114,8 @@ fn load_chat(chat_id: String) -> Value {
 
 #[tauri::command]
 fn save_chat(chat_id: Option<String>, title: String, messages: Value, model: String) -> String {
-    let _ = fs::create_dir_all(CHATS_DIR);
+    let chats_dir = get_chats_dir();
+    let _ = fs::create_dir_all(&chats_dir);
 
     // Génère un ID (timestamp en ms) si chat_id est vide ou None
     let id = match chat_id {
@@ -130,7 +140,7 @@ fn save_chat(chat_id: Option<String>, title: String, messages: Value, model: Str
         "messages": messages
     });
 
-    let filename = format!("{}/{}.json", CHATS_DIR, id);
+    let filename = chats_dir.join(format!("{}.json", id));
     let _ = fs::write(
         filename,
         serde_json::to_string_pretty(&chat_json).unwrap_or_default(),
@@ -140,7 +150,7 @@ fn save_chat(chat_id: Option<String>, title: String, messages: Value, model: Str
 
 #[tauri::command]
 fn delete_chat(chat_id: String) -> bool {
-    let filename = format!("{}/{}.json", CHATS_DIR, chat_id);
+    let filename = get_chats_dir().join(format!("{}.json", chat_id));
     fs::remove_file(filename).is_ok()
 }
 
