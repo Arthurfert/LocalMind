@@ -1,11 +1,45 @@
-.PHONY: help install install-deps dev build clean build-release
+.PHONY: help install install-deps dev build clean clean-all rebuild info
+
+# Détecte le système d'exploitation
+# Teste si on est sur Windows en cherchant cmd.exe
+UNAME := $(shell uname 2>/dev/null || echo Windows)
+
+ifeq ($(UNAME),Windows)
+	DETECTED_OS := Windows
+else ifeq ($(findstring MINGW,$(UNAME)),MINGW)
+	DETECTED_OS := Windows
+else ifeq ($(findstring CYGWIN,$(UNAME)),CYGWIN)
+	DETECTED_OS := Windows
+else ifeq ($(findstring MSYS,$(UNAME)),MSYS)
+	DETECTED_OS := Windows
+else ifeq ($(UNAME),Linux)
+	DETECTED_OS := Linux
+else
+	DETECTED_OS := $(UNAME)
+endif
+
+# Configuration spécifique à l'OS
+ifeq ($(DETECTED_OS),Windows)
+	SHELL := pwsh.exe
+	.SHELLFLAGS := -NoProfile -Command
+	CARGO_LOCK := src-tauri/Cargo.lock
+	RM_RF := Remove-Item -Recurse -Force
+	RM_F := Remove-Item -Force
+	TEST_PATH := Test-Path
+else
+	# Linux/Mac
+	CARGO_LOCK := src-tauri/Cargo.lock
+	RM_RF := rm -rf
+	RM_F := rm -f
+	TEST_PATH := test -d
+endif
 
 # Variables
 NODE_MODULES := node_modules
-CARGO_LOCK := src-tauri/Cargo.lock
 
 help:
-	@echo "LocalMind - Makefile targets:"
+	@echo "LocalMind - Makefile targets"
+	@echo "Detected OS: $(DETECTED_OS)"
 	@echo ""
 	@echo "Installation:"
 	@echo "  make install          - Install all dependencies"
@@ -49,14 +83,23 @@ build-release:
 # Nettoie les fichiers build
 clean:
 	@echo "Cleaning build files..."
-	@if exist src-tauri\target (rmdir /s /q src-tauri\target 2>nul || true)
+ifeq ($(DETECTED_OS),Windows)
+	@if (Test-Path src-tauri\target) { Remove-Item -Recurse -Force src-tauri\target }
+else
+	@$(RM_RF) src-tauri/target
+endif
 	@echo "Cleaning completed"
 
 # Nettoie complètement (node_modules et build)
 clean-all: clean
 	@echo "Complete cleaning..."
-	@if exist node_modules (rmdir /s /q node_modules 2>nul || true)
-	@if exist $(CARGO_LOCK) (del $(CARGO_LOCK) 2>nul || true)
+ifeq ($(DETECTED_OS),Windows)
+	@if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
+	@if (Test-Path $(CARGO_LOCK)) { Remove-Item -Force $(CARGO_LOCK) }
+else
+	@$(RM_RF) node_modules
+	@$(RM_F) $(CARGO_LOCK)
+endif
 	@echo "Complete cleaning completed"
 
 # Recompile complètement

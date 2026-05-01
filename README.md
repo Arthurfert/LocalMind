@@ -23,7 +23,7 @@ git clone https://github.com/Arthurfert/LocalMind.git
 cd LocalMind
 ```
 
-> [!NOTE] Run `make help` to use the Makefile
+> [!TIP] Run `make help` to use the Makefile
 
 Otherwise, use the following commands :
 ### 2. Install Node dependencies
@@ -65,5 +65,5 @@ LocalMind/
 ```
 
 ## Configuration
-By default, the application connects to the local Ollama daemon at http://localhost:11434.
+By default, the application connects to the local Ollama daemon at `http://localhost:11434`.
 To change the URL (if your Ollama is hosted on another server), you can edit the initialization in the src-tauri/src/lib.rs file.

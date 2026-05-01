@@ -728,6 +728,8 @@ document.addEventListener("DOMContentLoaded", () => {
         attachmentsPreview.innerHTML = "";
 
         try {
+            // Indique au frontend qu'une génération est en cours
+            isGenerating = true;
             await invoke("send_message", { model: model, messages: messages, images: imagesToSend || null });
         } catch (error) {
             console.error("Erreur:", error);
