@@ -2,6 +2,17 @@
 // --- Logique Front-End ---
 
 document.addEventListener("DOMContentLoaded", () => {
+    if (window.marked) {
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+    }
+
+    function renderMarkdown(content) {
+        return window.marked ? marked.parse(content) : content;
+    }
+
     const messageInput = document.getElementById("message-input");
     const sendBtn = document.getElementById("send-btn");
     
@@ -419,7 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
         displayContent = displayContent.replace(imageRegex, '');
 
         if(role === 'assistant') {
-            msgDiv.innerHTML = `<div class="message-content">${marked.parse(displayContent)}</div>`;
+            msgDiv.innerHTML = `<div class="message-content">${renderMarkdown(displayContent)}</div>`;
         } else {
             msgDiv.innerHTML = `<div class="message-content">${displayContent}</div>`; // texte brut pour l'utilisateur
         }

@@ -3,6 +3,17 @@
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
+if (window.marked) {
+    marked.setOptions({
+        breaks: true,
+        gfm: true
+    });
+}
+
+function renderMarkdown(content) {
+    return window.marked ? marked.parse(content) : content;
+}
+
 var messages = [];
 var currentBotMessageElement = null;
 var currentBotText = "";
@@ -62,9 +73,9 @@ function onStreamChunk(chunk) {
     currentBotText += chunk;
     const contentDiv = currentBotMessageElement.querySelector('.message-content');
     if (contentDiv) {
-        contentDiv.innerHTML = marked.parse(currentBotText);
+        contentDiv.innerHTML = renderMarkdown(currentBotText);
     } else {
-        currentBotMessageElement.innerHTML = marked.parse(currentBotText);
+        currentBotMessageElement.innerHTML = renderMarkdown(currentBotText);
     }
     
     // Descendre le scroll
@@ -152,9 +163,9 @@ function onStreamError(err) {
         
         const contentDiv = currentBotMessageElement.querySelector('.message-content');
         if (contentDiv) {
-            contentDiv.innerHTML = marked.parse("`Erreur: " + err + "`");
+            contentDiv.innerHTML = renderMarkdown("`Erreur: " + err + "`");
         } else {
-            currentBotMessageElement.innerHTML = marked.parse("`Erreur: " + err + "`");
+            currentBotMessageElement.innerHTML = renderMarkdown("`Erreur: " + err + "`");
         }
     }
     isGenerating = false;

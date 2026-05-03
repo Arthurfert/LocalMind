@@ -8,13 +8,10 @@ This projects aims to become a general interface for your local agents.
 
 It should become a **safe** agentic environnement that you can easily deploy and use.
 
-## In developpment
-
-- PDF handling
-
 ## Ideas and things to come (*by priority*)
 
-- Latex handling
+- PDF handling
+- Latex formatting
 - Add agents, skills
 - Add RAG
 - Add STT model
