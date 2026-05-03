@@ -10,6 +10,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderMarkdown(content) {
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // Si le contenu contient un bloc de code délimité par ``` on priorise son rendu
+        const fenced = content.match(/^\s*```(?:([\w+-]+)\n)?([\s\S]*?)\n```/);
+        if (fenced) {
+            const lang = fenced[1] || '';
+            const code = fenced[2] || '';
+            const langClass = lang ? ` class="language-${lang}"` : '';
+            return `<pre><code${langClass}>${escapeHtml(code)}</code></pre>`;
+        }
+
         return window.marked ? marked.parse(content) : content;
     }
 
@@ -432,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if(role === 'assistant') {
             msgDiv.innerHTML = `<div class="message-content">${renderMarkdown(displayContent)}</div>`;
         } else {
-            msgDiv.innerHTML = `<div class="message-content">${displayContent}</div>`; // texte brut pour l'utilisateur
+            msgDiv.innerHTML = `<div class="message-content">${renderMarkdown(displayContent)}</div>`; // formaté en markdown compact
         }
 
         // Ajouter les previews sous le message
