@@ -480,6 +480,46 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         chatMessages.appendChild(msgDiv);
+        // Après insertion, vérifier si le message utilisateur dépasse 4 lignes
+        if (role === 'user') {
+            const contentDiv = msgDiv.querySelector('.message-content');
+            // Forcer le rendu pour obtenir des mesures
+            contentDiv.style.maxWidth = contentDiv.style.maxWidth || '';
+            const computed = window.getComputedStyle(contentDiv);
+            let lineHeight = computed.lineHeight;
+            if (!lineHeight || lineHeight === 'normal') {
+                // fallback: estimer depuis font-size
+                const fontSize = parseFloat(computed.fontSize) || 14;
+                lineHeight = (fontSize * 1.4) + 'px';
+            }
+            const lh = parseFloat(lineHeight);
+            const lines = Math.round(contentDiv.scrollHeight / lh);
+
+            if (lines > 4) {
+                contentDiv.classList.add('collapsed');
+
+                const btn = document.createElement('button');
+                btn.className = 'expand-toggle';
+                btn.title = 'Afficher plus';
+                btn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                `;
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const expanded = msgDiv.classList.toggle('expanded');
+                    if (expanded) {
+                        contentDiv.classList.remove('collapsed');
+                        btn.title = 'Réduire';
+                    } else {
+                        contentDiv.classList.add('collapsed');
+                        btn.title = 'Afficher plus';
+                    }
+                });
+
+                msgDiv.appendChild(btn);
+            }
+        }
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return msgDiv;
     }
