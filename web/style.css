@@ -11,6 +11,57 @@
     --msg-user: #2f2f2f;
 }
 
+/* Bulle utilisateur rétractable (règles globales corrigées) */
+.message.user { position: relative; }
+
+.message.user .message-content {
+    --line-height: 1.4em;
+    line-height: var(--line-height);
+    width: 100%;
+    background: transparent; /* le fond est géré par .message.user */
+    color: var(--text-primary);
+    position: relative;
+    padding: 0; /* éviter double padding (message + message-content) */
+}
+
+.message.user .message-content.collapsed {
+    /* Limite à 4 lignes */
+    max-height: calc(var(--line-height) * 4);
+    overflow: hidden;
+}
+
+.message.user .expand-toggle {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text-primary);
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    transition: transform 0.18s ease, background 0.12s ease;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+}
+
+.message.user .expand-toggle:hover { transform: translateY(-2px) scale(1.03); background: rgba(255,255,255,0.06); }
+
+.message.user .expand-toggle svg {
+    transform-origin: center;
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.message.user.expanded .expand-toggle svg { transform: rotate(180deg); }
+
+.message.user .message-content::after { content: ""; display: block; }
+
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -294,63 +345,8 @@ body {
     gap: 24px;
     z-index: 10;
     scroll-behavior: smooth;
-
-    /* Bulle utilisateur rétractable */
-    .message.user .message-content {
-        --line-height: 1.4em;
-        line-height: var(--line-height);
-        max-width: 70%;
-        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
-        padding: 12px 14px;
-        border-radius: 10px;
-        color: var(--text-primary);
-        position: relative;
-    }
-
-    .message.user { position: relative; }
-
-    .message.user .message-content.collapsed {
-        /* Limite à 4 lignes */
-        max-height: calc(var(--line-height) * 4);
-        overflow: hidden;
-    }
-
-
-    .message.user .expand-toggle {
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.06);
-        color: var(--text-primary);
-        position: absolute;
-        right: 10px;
-        top: 4px;
-        transition: transform 0.18s ease, background 0.12s ease;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    }
-
-    .message.user .expand-toggle:hover { transform: translateY(-2px) scale(1.02); background: rgba(255,255,255,0.06); }
-
-    .message.user .expand-toggle svg {
-        transform-origin: center;
-        width: 18px !important;
-        height: 18px !important;
-    }
-
-    .message.user.expanded .expand-toggle svg {
-        transform: rotate(180deg);
-    }
-
-    .message.user .message-content::after {
-        content: "";
-        display: block;
-    }
 }
+
 
 /* On masque le logo si le chat n'est pas vide */
 .chat-messages:not(:empty) + .empty-state, 
