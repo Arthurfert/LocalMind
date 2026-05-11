@@ -134,6 +134,7 @@
             <div class="settings-tabs">
                 <button class="settings-tab active" data-tab="general">Général</button>
                 <button class="settings-tab" data-tab="mcp">Serveurs MCP</button>
+                <button class="settings-tab" data-tab="providers">Providers</button>
             </div>
 
             <!-- Contenu Général -->
@@ -191,6 +192,33 @@
                     </div>
                     <button id="save-mcp-server-btn" class="modal-btn confirm-btn" style="width: 100%;">Enregistrer ce serveur</button>
                 </div>
+            </div>
+
+            <!-- Contenu Providers -->
+            <div class="settings-tab-content" id="tab-providers" style="display: none;">
+                <div class="settings-group">
+                    <label for="provider-select">Provider :</label>
+                    <select id="provider-select" style="padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color);">
+                        <option value="ollama">Ollama (local)</option>
+                        <option value="openapi">OpenAPI (HTTP)</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label for="provider-base-url">Base URL :</label>
+                    <input type="text" id="provider-base-url" placeholder="Ex: http://localhost:11434 ou https://api.example">
+                </div>
+
+                <div class="settings-group">
+                    <label for="provider-models-path">Models path (optionnel) :</label>
+                    <input type="text" id="provider-models-path" placeholder="Ex: v1/models">
+                </div>
+
+                <div class="settings-group">
+                    <label for="provider-chat-path">Chat path (optionnel) :</label>
+                    <input type="text" id="provider-chat-path" placeholder="Ex: /v1/chat/completions">
+                </div>
+                <p style="font-size:12px;color:var(--text-secondary);">Remarque: si vous choisissez "OpenAPI", renseignez `base_url`. Le `models_path` est optionnel et dépend du provider.</p>
             </div>
 
             <div class="modal-actions" style="margin-top: 15px;">

@@ -4,6 +4,8 @@ use serde::Serialize;
 use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use async_trait::async_trait;
+use crate::provider::ProviderClient;
 
 pub const SYSTEM_PROMPT_TEMPLATE: &str = include_str!("system-prompt.md");
 
@@ -64,15 +66,13 @@ impl OllamaClient {
         Ok(models)
     }
 
-    pub async fn chat_stream<F>(
+    pub async fn chat_stream(
         &self,
         model: &str,
         mut messages: Vec<Value>,
         tools: Option<Vec<Value>>,
-        mut chunk_callback: F,
+        chunk_callback: Box<dyn Fn(String) + Send + Sync + 'static>,
     ) -> Result<(String, Vec<Value>), String>
-    where
-        F: FnMut(String) + Send,
     {
         // Construction du message système et ajout en première position
         let current_date = chrono::Local::now().format("%Y-%m-%d").to_string();
@@ -139,7 +139,7 @@ impl OllamaClient {
                                     if let Some(chunk) = msg.get("content").and_then(|c| c.as_str())
                                     {
                                         full_response.push_str(chunk);
-                                        chunk_callback(chunk.to_string());
+                                        (chunk_callback)(chunk.to_string());
                                     }
                                     if let Some(tc) =
                                         msg.get("tool_calls").and_then(|t| t.as_array())
@@ -159,5 +159,26 @@ impl OllamaClient {
         }
 
         Ok((full_response, tool_calls))
+    }
+}
+
+#[async_trait]
+impl ProviderClient for OllamaClient {
+    async fn get_available_models(&self) -> Result<Vec<String>, String> {
+        OllamaClient::get_available_models(self).await
+    }
+
+    fn abort(&self) {
+        OllamaClient::abort(self)
+    }
+
+    async fn chat_stream(
+        &self,
+        model: &str,
+        messages: Vec<Value>,
+        tools: Option<Vec<Value>>,
+        chunk_callback: Box<dyn Fn(String) + Send + Sync + 'static>,
+    ) -> Result<(String, Vec<Value>), String> {
+        OllamaClient::chat_stream(self, model, messages, tools, chunk_callback).await
     }
 }
