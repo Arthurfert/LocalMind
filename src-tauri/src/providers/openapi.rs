@@ -69,7 +69,7 @@ impl OpenApiClient {
                         if !out.is_empty() { return Ok(out); }
                     }
 
-                    // Ollama-style: { models: [{ name: "..."}, ... ] }
+                    // Generic fallback: { models: [{ name: "..."}, ... ] }
                     if let Some(arr) = json.get("models").and_then(|m| m.as_array()) {
                         let mut out = Vec::new();
                         for item in arr {
@@ -155,7 +155,7 @@ impl ProviderClient for OpenApiClient {
                                     }
                                 }
 
-                                // Ollama-style: { message: { content: "..." } }
+                                // Generic fallback: { message: { content: "..." } }
                                 if let Some(msg) = json.get("message") {
                                     if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
                                         full_response.push_str(content);

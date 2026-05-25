@@ -9,7 +9,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::Mutex;
 
 mod providers;
-use providers::{OllamaClient, OpenApiClient};
+use providers::OpenApiClient;
 mod provider;
 use provider::ProviderClient;
 mod mcp;
@@ -61,34 +61,33 @@ fn save_settings(settings: Value) -> bool {
     }
 }
 
-fn extract_active_provider_config(settings: &Value) -> (String, Option<String>, Option<String>, Option<String>) {
-    let active_provider = settings
-        .get("provider")
-        .and_then(|p| p.as_str())
-        .unwrap_or("ollama")
-        .to_string();
+fn has_provider_configuration(settings: &Value) -> bool {
+    if settings
+        .get("providers")
+        .and_then(|p| p.as_array())
+        .map(|providers| !providers.is_empty())
+        .unwrap_or(false)
+    {
+        return true;
+    }
 
+    settings.get("base_url").is_some()
+        || settings.get("models_path").is_some()
+        || settings.get("chat_path").is_some()
+}
+
+fn extract_openapi_config(settings: &Value) -> (String, Option<String>, Option<String>) {
     let selected_from_list = settings
         .get("providers")
         .and_then(|p| p.as_array())
-        .and_then(|providers| {
-            providers
-                .iter()
-                .find(|cfg| cfg.get("provider").and_then(|p| p.as_str()) == Some(active_provider.as_str()))
-                .or_else(|| providers.first())
-        });
-
-    let cfg_provider = selected_from_list
-        .and_then(|cfg| cfg.get("provider"))
-        .and_then(|p| p.as_str())
-        .unwrap_or(active_provider.as_str())
-        .to_string();
+        .and_then(|providers| providers.first());
 
     let cfg_base_url = selected_from_list
         .and_then(|cfg| cfg.get("base_url"))
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .or_else(|| settings.get("base_url").and_then(|v| v.as_str()).map(|s| s.to_string()));
+        .or_else(|| settings.get("base_url").and_then(|v| v.as_str()).map(|s| s.to_string()))
+        .unwrap_or_else(|| "http://localhost:11434".to_string());
 
     let cfg_models_path = selected_from_list
         .and_then(|cfg| cfg.get("models_path"))
@@ -102,37 +101,28 @@ fn extract_active_provider_config(settings: &Value) -> (String, Option<String>, 
         .map(|s| s.to_string())
         .or_else(|| settings.get("chat_path").and_then(|v| v.as_str()).map(|s| s.to_string()));
 
-    (cfg_provider, cfg_base_url, cfg_models_path, cfg_chat_path)
+    (cfg_base_url, cfg_models_path, cfg_chat_path)
 }
 
 fn build_provider_client(settings: &Value) -> Arc<dyn ProviderClient> {
-    let (provider_name, base_url, models_path, chat_path) = extract_active_provider_config(settings);
-
-    match provider_name.as_str() {
-        "openapi" => {
-            let base = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
-            let models = models_path.unwrap_or_default();
-            let chat = chat_path.unwrap_or_else(|| "/v1/chat/completions".to_string());
-            Arc::new(OpenApiClient::new(&base, &models, &chat))
-        }
-        _ => {
-            let base = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
-            Arc::new(OllamaClient::new(&base))
-        }
-    }
+    let (base_url, models_path, chat_path) = extract_openapi_config(settings);
+    let models = models_path.unwrap_or_default();
+    let chat = chat_path.unwrap_or_else(|| "/v1/chat/completions".to_string());
+    Arc::new(OpenApiClient::new(&base_url, &models, &chat))
 }
 
 fn normalize_provider_settings(mut settings: Value) -> Value {
-    let (provider_name, base_url, models_path, chat_path) = extract_active_provider_config(&settings);
-    let active_provider_name = provider_name.clone();
+    if !has_provider_configuration(&settings) {
+        return settings;
+    }
+
+    let (base_url, models_path, chat_path) = extract_openapi_config(&settings);
 
     let mut provider_obj = serde_json::json!({
-        "provider": provider_name,
+        "provider": "openapi",
+        "base_url": base_url,
     });
 
-    if let Some(base) = base_url {
-        provider_obj["base_url"] = Value::String(base);
-    }
     if let Some(models) = models_path {
         if !models.trim().is_empty() {
             provider_obj["models_path"] = Value::String(models);
@@ -151,22 +141,15 @@ fn normalize_provider_settings(mut settings: Value) -> Value {
             .cloned()
             .unwrap_or_default();
 
-        if let Some(pos) = providers.iter().position(|cfg| {
-            cfg.get("provider").and_then(|p| p.as_str())
-                == provider_obj.get("provider").and_then(|p| p.as_str())
-        }) {
-            providers[pos] = provider_obj;
-        } else {
+        if providers.is_empty() {
             providers.push(provider_obj);
+        } else {
+            providers[0] = provider_obj;
         }
 
-        map.insert(
-            "provider".to_string(),
-            Value::String(active_provider_name),
-        );
         map.insert("providers".to_string(), Value::Array(providers));
 
-        // Keep compatibility at runtime via parser, but write provider config in structured list format.
+        map.remove("provider");
         map.remove("base_url");
         map.remove("models_path");
         map.remove("chat_path");
@@ -517,7 +500,11 @@ async fn connect_mcp_server(
 pub fn run() {
     // Load settings synchronously to choose provider configuration
     let settings = get_settings();
-    let provider_client = build_provider_client(&settings);
+    let normalized_settings = normalize_provider_settings(settings.clone());
+    if normalized_settings != settings {
+        let _ = save_settings(normalized_settings.clone());
+    }
+    let provider_client = build_provider_client(&normalized_settings);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -528,9 +515,9 @@ pub fn run() {
         })
         .setup(|app| {
             let state = app.try_state::<AppState>().unwrap();
-            let settings = get_settings();
+            let settings = normalize_provider_settings(get_settings());
             // If no provider configured, tell frontend to open settings UI
-            if settings.get("provider").is_none() {
+            if !has_provider_configuration(&settings) {
                 let _ = app.emit("open-settings", ());
             }
             let global_auto_approve = settings

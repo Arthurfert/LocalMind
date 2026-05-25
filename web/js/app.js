@@ -74,24 +74,20 @@ document.addEventListener("DOMContentLoaded", () => {
     let mcpServers = [];
 
     function readActiveProviderSettings(settings) {
-        const active = settings.provider || "ollama";
         const providers = Array.isArray(settings.providers) ? settings.providers : [];
-        const fromList = providers.find(p => p && p.provider === active) || providers[0] || {};
+        const fromList = providers[0] || {};
         return {
-            provider: fromList.provider || active,
-            base_url: fromList.base_url || settings.base_url || "",
+            base_url: fromList.base_url || settings.base_url || "http://localhost:11434",
             models_path: fromList.models_path || settings.models_path || "",
-            chat_path: fromList.chat_path || settings.chat_path || "",
+            chat_path: fromList.chat_path || settings.chat_path || "/v1/chat/completions",
         };
     }
 
     function fillProviderForm(settings) {
         const cfg = readActiveProviderSettings(settings || {});
-        const providerSelect = document.getElementById('provider-select');
         const providerBase = document.getElementById('provider-base-url');
         const providerModels = document.getElementById('provider-models-path');
         const providerChat = document.getElementById('provider-chat-path');
-        if (providerSelect) providerSelect.value = cfg.provider || 'ollama';
         if (providerBase) providerBase.value = cfg.base_url || '';
         if (providerModels) providerModels.value = cfg.models_path || '';
         if (providerChat) providerChat.value = cfg.chat_path || '';
@@ -319,37 +315,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Save provider settings and reinitialize provider client at runtime
                 try {
-                    const providerSelect = document.getElementById('provider-select');
                     const providerBase = document.getElementById('provider-base-url');
                     const providerModels = document.getElementById('provider-models-path');
                     const providerChat = document.getElementById('provider-chat-path');
-                    if (providerSelect) {
-                        const provSettings = {
-                            provider: providerSelect.value,
-                            base_url: (providerBase && providerBase.value) ? providerBase.value.trim() : "",
-                            models_path: (providerModels && providerModels.value) ? providerModels.value.trim() : "",
-                            chat_path: (providerChat && providerChat.value) ? providerChat.value.trim() : "",
-                        };
+                    const provSettings = {
+                        provider: "openapi",
+                        base_url: (providerBase && providerBase.value) ? providerBase.value.trim() : "http://localhost:11434",
+                        models_path: (providerModels && providerModels.value) ? providerModels.value.trim() : "",
+                        chat_path: (providerChat && providerChat.value) ? providerChat.value.trim() : "/v1/chat/completions",
+                    };
 
-                        settings.provider = provSettings.provider;
-                        settings.providers = [
-                            {
-                                provider: provSettings.provider,
-                                base_url: provSettings.base_url,
-                                models_path: provSettings.models_path,
-                                chat_path: provSettings.chat_path,
-                            }
-                        ];
+                    settings.providers = [provSettings];
+                    delete settings.provider;
+                    delete settings.base_url;
+                    delete settings.models_path;
+                    delete settings.chat_path;
 
-                        delete settings.base_url;
-                        delete settings.models_path;
-                        delete settings.chat_path;
-
-                        // Call Tauri command to update runtime provider
-                        if (window.saveProviderSettings) {
-                            await window.saveProviderSettings(settings);
-                            await loadModels();
-                        }
+                    // Call Tauri command to update runtime provider
+                    if (window.saveProviderSettings) {
+                        await window.saveProviderSettings(settings);
+                        await loadModels();
                     }
                 } catch(e) { console.error('Erreur save provider settings', e); }
                 

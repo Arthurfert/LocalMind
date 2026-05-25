@@ -14,5 +14,4 @@ pub trait ProviderClient: Send + Sync {
     ) -> Result<(String, Vec<Value>), String>;
 }
 
-// Implementations for specific providers live here. We provide a blanket impl in the
-// `ollama` module (implemented there) which satisfies this trait.
+// Implementations for specific providers live in the `providers` module.

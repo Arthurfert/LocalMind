@@ -197,28 +197,25 @@
             <!-- Contenu Providers -->
             <div class="settings-tab-content" id="tab-providers" style="display: none;">
                 <div class="settings-group">
-                    <label for="provider-select">Provider :</label>
-                    <select id="provider-select" style="padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color);">
-                        <option value="ollama">Ollama (local)</option>
-                        <option value="openapi">OpenAPI (HTTP)</option>
-                    </select>
-                </div>
-
-                <div class="settings-group">
-                    <label for="provider-base-url">URL :</label>
+                    <label for="provider-base-url">Endpoint OpenAPI</label>
                     <input type="text" id="provider-base-url" placeholder="Ex: http://localhost:11434 ou https://api.example">
                 </div>
 
-                <div class="settings-group">
-                    <label for="provider-models-path">Chemin des models (optionnel) :</label>
-                    <input type="text" id="provider-models-path" placeholder="Ex: v1/models">
+                <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+                    <button id="provider-advanced-toggle" class="modal-btn cancel-btn" style="padding:6px 10px; font-size:13px;">Options avancées</button>
                 </div>
 
-                <div class="settings-group">
-                    <label for="provider-chat-path">Chemin de l'historique (optionnel) :</label>
-                    <input type="text" id="provider-chat-path" placeholder="Ex: /v1/chat/completions">
+                <div id="provider-advanced" style="display: none; margin-top:10px;">
+                    <div class="settings-group">
+                        <label for="provider-models-path">Chemin des modèles (optionnel)</label>
+                        <input type="text" id="provider-models-path" placeholder="Ex: v1/models (laisser vide pour auto)">
+                    </div>
+
+                    <div class="settings-group">
+                        <label for="provider-chat-path">Chemin de chat (optionnel)</label>
+                        <input type="text" id="provider-chat-path" placeholder="Laisser vide pour par défaut : {base}/v1/chat/completions">
+                    </div>
                 </div>
-                <p style="font-size:12px;color:var(--text-secondary);">Remarque: si vous choisissez "OpenAPI", renseignez l'URL. Le chemin vers les models est optionnel et dépend du provider.</p>
             </div>
 
             <div class="modal-actions" style="margin-top: 15px;">
@@ -241,6 +238,21 @@
     </div>
 
     <!-- Scripts JS Séparés -->
+    <script>
+        (function(){
+            document.addEventListener('DOMContentLoaded', function(){
+                const toggle = document.getElementById('provider-advanced-toggle');
+                const panel = document.getElementById('provider-advanced');
+                if(!toggle || !panel) return;
+                toggle.addEventListener('click', function(e){
+                    e.preventDefault();
+                    const shown = panel.style.display === 'block';
+                    panel.style.display = shown ? 'none' : 'block';
+                    toggle.textContent = shown ? 'Options avancées' : 'Masquer avancées';
+                });
+            });
+        })();
+    </script>
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
     <script src="js/sphere.js"></script>
