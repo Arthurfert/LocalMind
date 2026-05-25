@@ -1,13 +1,12 @@
-# LocalMind - Ollama Interface with Tauri (Rust)
+# LocalMind - LLM Interface written in Rust
 
-A modern, native, and highly customizable desktop interface (HTML/CSS/JS) to interact with your local language models via Ollama and Rust.
+A modern, native, and highly customizable desktop interface (HTML/CSS/JS) to interact with your local language models via Rust.
 
 ## Prerequisites
 
 - Node.js & npm
 - Rust & Cargo (with MSVC toolchain on Windows)
-- Ollama installed and running ([Ollama Installation](https://ollama.ai))
-- One or more Ollama models downloaded (e.g., `ollama pull llama3`)
+- A Openapi provider *like `ollama`, `llama.cpp` or others like openai, anthropic...*
 
 ## Features
 
@@ -65,6 +64,6 @@ LocalMind/
         └── sphere.js       # Background 3D sphere animation logic
 ```
 
-## Configuration
-By default, the application connects to the local Ollama daemon at `http://localhost:11434`.
-To change the URL (if your Ollama is hosted on another server), you can edit the initialization in the src-tauri/src/lib.rs file.
+## License
+
+This repository is under [MIT License](./LICENSE).

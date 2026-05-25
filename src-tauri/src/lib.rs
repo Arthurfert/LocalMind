@@ -8,13 +8,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::Mutex;
 
-mod ollama;
-use ollama::OllamaClient;
+mod providers;
+use providers::OpenApiClient;
+mod provider;
+use provider::ProviderClient;
 mod mcp;
 use mcp::McpManager;
+use std::sync::Arc;
 
 struct AppState {
-    ollama_client: Mutex<OllamaClient>,
+    provider_client: Mutex<Arc<dyn ProviderClient>>,
     mcp_manager: McpManager,
     pending_confirmations: Mutex<HashMap<usize, tokio::sync::oneshot::Sender<bool>>>,
 }
@@ -56,6 +59,125 @@ fn save_settings(settings: Value) -> bool {
         },
         Err(_) => false,
     }
+}
+
+fn has_provider_configuration(settings: &Value) -> bool {
+    if settings
+        .get("providers")
+        .and_then(|p| p.as_array())
+        .map(|providers| !providers.is_empty())
+        .unwrap_or(false)
+    {
+        return true;
+    }
+
+    settings.get("base_url").is_some()
+        || settings.get("models_path").is_some()
+        || settings.get("chat_path").is_some()
+}
+
+fn extract_openapi_config(settings: &Value) -> (String, Option<String>, Option<String>) {
+    let selected_from_list = settings
+        .get("providers")
+        .and_then(|p| p.as_array())
+        .and_then(|providers| providers.first());
+
+    let cfg_base_url = selected_from_list
+        .and_then(|cfg| cfg.get("base_url"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| settings.get("base_url").and_then(|v| v.as_str()).map(|s| s.to_string()))
+        .unwrap_or_else(|| "http://localhost:11434".to_string());
+
+    let cfg_models_path = selected_from_list
+        .and_then(|cfg| cfg.get("models_path"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| settings.get("models_path").and_then(|v| v.as_str()).map(|s| s.to_string()));
+
+    let cfg_chat_path = selected_from_list
+        .and_then(|cfg| cfg.get("chat_path"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| settings.get("chat_path").and_then(|v| v.as_str()).map(|s| s.to_string()));
+
+    (cfg_base_url, cfg_models_path, cfg_chat_path)
+}
+
+fn build_provider_client(settings: &Value) -> Arc<dyn ProviderClient> {
+    let (base_url, models_path, chat_path) = extract_openapi_config(settings);
+    let models = models_path.unwrap_or_default();
+    let chat = chat_path.unwrap_or_else(|| "/v1/chat/completions".to_string());
+    Arc::new(OpenApiClient::new(&base_url, &models, &chat))
+}
+
+fn normalize_provider_settings(mut settings: Value) -> Value {
+    if !has_provider_configuration(&settings) {
+        return settings;
+    }
+
+    let (base_url, models_path, chat_path) = extract_openapi_config(&settings);
+
+    let mut provider_obj = serde_json::json!({
+        "provider": "openapi",
+        "base_url": base_url,
+    });
+
+    if let Some(models) = models_path {
+        if !models.trim().is_empty() {
+            provider_obj["models_path"] = Value::String(models);
+        }
+    }
+    if let Some(chat) = chat_path {
+        if !chat.trim().is_empty() {
+            provider_obj["chat_path"] = Value::String(chat);
+        }
+    }
+
+    if let Some(map) = settings.as_object_mut() {
+        let mut providers = map
+            .get("providers")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        if providers.is_empty() {
+            providers.push(provider_obj);
+        } else {
+            providers[0] = provider_obj;
+        }
+
+        map.insert("providers".to_string(), Value::Array(providers));
+
+        map.remove("provider");
+        map.remove("base_url");
+        map.remove("models_path");
+        map.remove("chat_path");
+    }
+
+    settings
+}
+
+#[tauri::command]
+async fn set_provider_settings(
+    state: State<'_, AppState>,
+    settings: Value,
+) -> Result<bool, String> {
+    let normalized = normalize_provider_settings(settings);
+
+    // Persist settings to disk
+    if !save_settings(normalized.clone()) {
+        return Err("Impossible d'enregistrer Settings.json".to_string());
+    }
+
+    // Recreate provider client based on settings
+    let new_client = build_provider_client(&normalized);
+
+    // Swap the provider client in state
+    let mut guard = state.provider_client.lock().await;
+    *guard = new_client;
+
+    Ok(true)
 }
 
 // -- Gestion des discussions --
@@ -173,13 +295,13 @@ fn change_current_dir(new_path: String) -> Result<String, String> {
 // -- API LLM & MCP --
 #[tauri::command]
 async fn get_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
-    let client = state.ollama_client.lock().await;
+    let client = state.provider_client.lock().await.clone();
     client.get_available_models().await
 }
 
 #[tauri::command]
 async fn abort_generation(state: State<'_, AppState>) -> Result<(), ()> {
-    let client = state.ollama_client.lock().await;
+    let client = state.provider_client.lock().await.clone();
     client.abort();
     Ok(())
 }
@@ -192,7 +314,7 @@ async fn send_message(
     messages: Vec<Value>,
     _images: Option<Vec<String>>, // not yet supported images mapping in Rust client but defined
 ) -> Result<(), String> {
-    let client = state.ollama_client.lock().await.clone();
+    let client = state.provider_client.lock().await.clone();
     let mcp = state.mcp_manager.clone();
 
     // Asynchronous call using tauri feature
@@ -206,9 +328,9 @@ async fn send_message(
             let tools_opt = if tools.is_empty() { None } else { Some(tools) };
 
             let app_clone = app.clone();
-            let chunk_cb = move |chunk: String| {
+            let chunk_cb = Box::new(move |chunk: String| {
                 let _ = app_clone.emit("stream-chunk", chunk);
-            };
+            });
 
             let result = client
                 .chat_stream(&model, current_messages.clone(), tools_opt, chunk_cb)
@@ -376,16 +498,28 @@ async fn connect_mcp_server(
 // -- Configurations de Tauri --
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load settings synchronously to choose provider configuration
+    let settings = get_settings();
+    let normalized_settings = normalize_provider_settings(settings.clone());
+    if normalized_settings != settings {
+        let _ = save_settings(normalized_settings.clone());
+    }
+    let provider_client = build_provider_client(&normalized_settings);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
-            ollama_client: Mutex::new(OllamaClient::new("http://localhost:11434")),
+            provider_client: Mutex::new(provider_client),
             mcp_manager: McpManager::new(),
             pending_confirmations: Mutex::new(HashMap::new()),
         })
         .setup(|app| {
             let state = app.try_state::<AppState>().unwrap();
-            let settings = get_settings();
+            let settings = normalize_provider_settings(get_settings());
+            // If no provider configured, tell frontend to open settings UI
+            if !has_provider_configuration(&settings) {
+                let _ = app.emit("open-settings", ());
+            }
             let global_auto_approve = settings
                 .get("mcp_auto_approve")
                 .and_then(|a| a.as_bool())
@@ -432,6 +566,7 @@ pub fn run() {
             get_models,
             abort_generation,
             send_message,
+                set_provider_settings,
             connect_mcp_server,
             resolve_confirmation
         ])

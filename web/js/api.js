@@ -10,6 +10,20 @@ if (window.marked) {
     });
 }
 
+// Sauvegarde des settings provider via Tauri
+async function saveProviderSettings(settings) {
+    try {
+        const ok = await invoke('set_provider_settings', { settings });
+        return ok;
+    } catch (e) {
+        console.error('Erreur set_provider_settings', e);
+        return false;
+    }
+}
+
+// Expose pour l'UI
+window.saveProviderSettings = saveProviderSettings;
+
 function renderMarkdown(content) {
     function escapeHtml(str) {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

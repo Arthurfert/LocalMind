@@ -73,6 +73,26 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentUsername = "";
     let mcpServers = [];
 
+    function readActiveProviderSettings(settings) {
+        const providers = Array.isArray(settings.providers) ? settings.providers : [];
+        const fromList = providers[0] || {};
+        return {
+            base_url: fromList.base_url || settings.base_url || "http://localhost:11434",
+            models_path: fromList.models_path || settings.models_path || "",
+            chat_path: fromList.chat_path || settings.chat_path || "/v1/chat/completions",
+        };
+    }
+
+    function fillProviderForm(settings) {
+        const cfg = readActiveProviderSettings(settings || {});
+        const providerBase = document.getElementById('provider-base-url');
+        const providerModels = document.getElementById('provider-models-path');
+        const providerChat = document.getElementById('provider-chat-path');
+        if (providerBase) providerBase.value = cfg.base_url || '';
+        if (providerModels) providerModels.value = cfg.models_path || '';
+        if (providerChat) providerChat.value = cfg.chat_path || '';
+    }
+
     function renderMcpServers() {
         mcpServersList.innerHTML = "";
         if (mcpServers.length === 0) {
@@ -151,6 +171,27 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Initialisation
     updateGreeting();
+
+    // Écoute de l'événement émis par le backend pour ouvrir la fenêtre des paramètres
+    try {
+        const { listen } = window.__TAURI__.event;
+        listen('open-settings', async () => {
+            try {
+                const settings = await invoke('get_settings');
+                mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
+                mcpAutoApproveGlobalCheckbox.checked = settings.mcp_auto_approve || false;
+                userNameInput.value = settings.username || '';
+                fillProviderForm(settings);
+                mcpServers = settings.mcp_servers || [];
+                renderMcpServers();
+                settingsModal.style.display = "flex";
+                void settingsModal.offsetWidth;
+                settingsModal.classList.add("show");
+            } catch (e) {
+                console.error('Erreur lors de l\'ouverture des settings:', e);
+            }
+        });
+    } catch (e) {}
 
     async function updateLocationIndicator() {
         try {
@@ -238,6 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
             mcpAutoApproveGlobalCheckbox.checked = settings.mcp_auto_approve || false;
             
             userNameInput.value = currentUsername;
+            fillProviderForm(settings);
             renderMcpServers();
             settingsModal.style.display = "flex";
             void settingsModal.offsetWidth;
@@ -268,7 +310,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 settings.mcp_enabled = mcpEnabled;
                 settings.mcp_auto_approve = mcpAutoApprove;
                 settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
+                // Save general settings file
                 await invoke("save_settings", { settings: settings });
+
+                // Save provider settings and reinitialize provider client at runtime
+                try {
+                    const providerBase = document.getElementById('provider-base-url');
+                    const providerModels = document.getElementById('provider-models-path');
+                    const providerChat = document.getElementById('provider-chat-path');
+                    const provSettings = {
+                        provider: "openapi",
+                        base_url: (providerBase && providerBase.value) ? providerBase.value.trim() : "http://localhost:11434",
+                        models_path: (providerModels && providerModels.value) ? providerModels.value.trim() : "",
+                        chat_path: (providerChat && providerChat.value) ? providerChat.value.trim() : "/v1/chat/completions",
+                    };
+
+                    settings.providers = [provSettings];
+                    delete settings.provider;
+                    delete settings.base_url;
+                    delete settings.models_path;
+                    delete settings.chat_path;
+
+                    // Call Tauri command to update runtime provider
+                    if (window.saveProviderSettings) {
+                        await window.saveProviderSettings(settings);
+                        await loadModels();
+                    }
+                } catch(e) { console.error('Erreur save provider settings', e); }
                 
                 // Restart servers with new settings
                 if (mcpEnabled) {
