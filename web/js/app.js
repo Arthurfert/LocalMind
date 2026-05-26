@@ -406,6 +406,57 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropdownSelected = document.getElementById("dropdown-selected");
     const dropdownOptions = document.getElementById("dropdown-options");
     let currentModel = "";
+    const PROVIDER_RETRY_DELAY_SECONDS = 5;
+    let providerRetryTimer = null;
+    let providerReloadMode = false;
+    let providerRetryReady = false;
+    let isLoadingModels = false;
+
+    function clearProviderRetryState() {
+        if (providerRetryTimer) {
+            clearTimeout(providerRetryTimer);
+            providerRetryTimer = null;
+        }
+    }
+
+    function setReloadButtonReady() {
+        providerRetryReady = true;
+        dropdownSelected.textContent = "Charger les modèles";
+        dropdownSelected.classList.add("retry-ready");
+    }
+
+    function setProviderDisconnectedState(delaySeconds = PROVIDER_RETRY_DELAY_SECONDS) {
+        clearProviderRetryState();
+        providerReloadMode = true;
+        providerRetryReady = false;
+        currentModel = "";
+        dropdownOptions.classList.remove("show");
+        dropdownOptions.innerHTML = "";
+        sendBtn.disabled = true;
+        sendBtn.style.backgroundColor = "#444";
+        sendBtn.style.color = "#909090";
+
+        const waitMs = Math.max(0, Number(delaySeconds) || 0) * 1000;
+        dropdownSelected.classList.remove("retry-ready");
+        dropdownSelected.textContent = "Chargement des modèles...";
+
+        if (waitMs <= 0) {
+            setReloadButtonReady();
+            return;
+        }
+
+        providerRetryTimer = setTimeout(() => {
+            clearProviderRetryState();
+            setReloadButtonReady();
+        }, waitMs);
+    }
+
+    function clearProviderDisconnectedState() {
+        clearProviderRetryState();
+        providerReloadMode = false;
+        providerRetryReady = false;
+        dropdownSelected.classList.remove("retry-ready");
+    }
 
     const newChatBtn = document.getElementById("new-chat-btn");
     const emptyState = document.getElementById("empty-state");
@@ -621,14 +672,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadModels() {
+        if (isLoadingModels) return;
+        isLoadingModels = true;
         try {
+            if (providerReloadMode) {
+                dropdownSelected.classList.remove("retry-ready");
+                dropdownSelected.textContent = "Chargement des modèles...";
+            }
             const models = await invoke("get_models");
             
             dropdownOptions.innerHTML = "";
             if (!models || models.length === 0) {
-                dropdownSelected.textContent = "Aucun modèle trouvé";
-                sendBtn.disabled = true;
+                setProviderDisconnectedState();
+                return;
             } else {
+                clearProviderDisconnectedState();
                 currentModel = models[0];
                 dropdownSelected.textContent = currentModel;
                 
@@ -661,11 +719,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (error) {
             console.error("Erreur de chargement des modèles :", error);
+            setProviderDisconnectedState();
+        } finally {
+            isLoadingModels = false;
         }
     }
 
     // Gestion du clic pour ouvrir/fermer le menu
     dropdownSelected.addEventListener("click", () => {
+        if (providerReloadMode) {
+            if (!providerRetryReady || isLoadingModels) return;
+            void loadModels();
+            return;
+        }
         dropdownOptions.classList.toggle("show");
     });
 

@@ -695,6 +695,25 @@ body {
     background-color: #555;
 }
 
+.dropdown-selected.retry-ready {
+    background-color: #5a3a00;
+    color: #ffe7bf;
+}
+
+.dropdown-selected.retry-ready {
+    cursor: pointer;
+    animation: retryPulse 1.8s ease-in-out infinite;
+}
+
+.dropdown-selected.retry-ready:hover {
+    background-color: #744900;
+}
+
+@keyframes retryPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 184, 87, 0); }
+    50% { box-shadow: 0 0 0 6px rgba(255, 184, 87, 0.2); }
+}
+
 .dropdown-options {
     position: absolute;
     bottom: 100%; /* S'ouvre vers le haut */
