@@ -53,7 +53,8 @@ listen('stream-chunk', (event) => {
     onStreamChunk(event.payload);
 });
 listen('stream-end', () => {
-    onStreamEnd();
+    // call async handler, listener ignores returned promise
+    void onStreamEnd();
 });
 listen('stream-error', (event) => {
     onStreamError(event.payload);
@@ -110,7 +111,7 @@ function onStreamChunk(chunk) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function onStreamEnd() {
+async function onStreamEnd() {
     if (window._currentSphereAnimation) {
         window._currentSphereAnimation.stop();
         window._currentSphereAnimation = null;
@@ -121,9 +122,6 @@ function onStreamEnd() {
             sphereContainer.remove();
         }
     }
-    // Le stream est fini, on stocke le message final dans l'historique
-    messages.push({role: "assistant", content: currentBotText});
-
     // Calculer et afficher les statistiques (token/s, temps de réponse)
     try {
         const endTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -138,7 +136,8 @@ function onStreamEnd() {
         // Construire le texte à afficher
         const statsText = `${approxTokens} tokens - ${tps.toFixed(1)} tok/s - ${elapsedSec.toFixed(2)}s`;
 
-        if (currentBotMessageElement) {
+        // Afficher les stats seulement si l'option est activée
+        if (window._displayStats && currentBotMessageElement) {
             const statsEl = currentBotMessageElement.querySelector('.message-stats');
             if (statsEl) {
                 statsEl.textContent = statsText;
@@ -153,8 +152,13 @@ function onStreamEnd() {
                 currentBotMessageElement.appendChild(el);
             }
         }
+
+        // Pousser le message final dans l'historique AVEC les stats
+        messages.push({ role: 'assistant', content: currentBotText, stats: { tokens: approxTokens, tok_per_sec: parseFloat(tps.toFixed(2)), seconds: parseFloat(elapsedSec.toFixed(3)) } });
     } catch (e) {
-        console.error('Erreur calcul stats:', e);
+        console.error('Erreur calcul stats ou push:', e);
+        // Fallback : pousser sans stats
+        messages.push({ role: 'assistant', content: currentBotText });
     }
 
     currentBotMessageElement = null;

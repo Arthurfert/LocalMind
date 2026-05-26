@@ -143,6 +143,13 @@
                     <label for="user-name-input">Votre nom :</label>
                     <input type="text" id="user-name-input" placeholder="Ex: Jean">
                 </div>
+                <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <label for="display-stats-checkbox" style="cursor:pointer; margin:0;">Afficher les statistiques de génération</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="display-stats-checkbox">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
 
             <!-- Contenu MCP -->
@@ -220,7 +227,7 @@
 
             <div class="modal-actions" style="margin-top: 15px;">
                 <button id="close-settings-btn" class="modal-btn cancel-btn">Fermer</button>
-                <button id="save-settings-btn" class="modal-btn confirm-btn">Enregistrer tout</button>
+                <button id="save-settings-btn" class="modal-btn confirm-btn">Enregistrer</button>
             </div>
         </div>
     </div>

@@ -40,7 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeSettingsBtn = document.getElementById("close-settings-btn");
     const saveSettingsBtn = document.getElementById("save-settings-btn");
     const userNameInput = document.getElementById("user-name-input");
+    const displayStatsCheckbox = document.getElementById("display-stats-checkbox");
     const greetingTitle = document.getElementById("greeting-title");
+
+    // Variable globale pour contrôler l'affichage des stats
+    window._displayStats = true;
 
     // Onglets des paramètres
     const settingsTabs = document.querySelectorAll(".settings-tab");
@@ -155,6 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
             mcpServers = settings.mcp_servers || [];
             mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
             mcpAutoApproveGlobalCheckbox.checked = settings.mcp_auto_approve || false;
+            if (displayStatsCheckbox) displayStatsCheckbox.checked = (settings.general && typeof settings.general.display_stats === 'boolean') ? settings.general.display_stats : true;
+            window._displayStats = displayStatsCheckbox.checked;
             
             const hour = new Date().getHours();
             const timeGreeting = (hour >= 19 || hour < 5) ? "Bonsoir" : "Bonjour";
@@ -277,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const settings = await invoke("get_settings");
             mcpEnabledCheckbox.checked = settings.mcp_enabled || false;
             mcpAutoApproveGlobalCheckbox.checked = settings.mcp_auto_approve || false;
-            
+            if (displayStatsCheckbox) displayStatsCheckbox.checked = (settings.general && typeof settings.general.display_stats === 'boolean') ? settings.general.display_stats : true;
             userNameInput.value = currentUsername;
             fillProviderForm(settings);
             renderMcpServers();
@@ -302,6 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const newName = userNameInput.value.trim();
             const mcpEnabled = mcpEnabledCheckbox.checked;
             const mcpAutoApprove = mcpAutoApproveGlobalCheckbox.checked;
+            const displayStats = displayStatsCheckbox ? displayStatsCheckbox.checked : true;
             
             try {
                 let settings = await invoke("get_settings");
@@ -310,6 +317,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 settings.mcp_enabled = mcpEnabled;
                 settings.mcp_auto_approve = mcpAutoApprove;
                 settings.mcp_servers = mcpServers; // Sauvegarde la liste MCP !
+                // General settings
+                settings.general = settings.general || {};
+                settings.general.display_stats = displayStats;
+                window._displayStats = displayStats;
                 // Save general settings file
                 await invoke("save_settings", { settings: settings });
 
@@ -355,6 +366,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 await updateGreeting();
+                
+                // Recharger la conversation actuelle pour appliquer les changements des paramètres
+                if (currentChatId) {
+                    await window.loadChat(currentChatId);
+                }
+                
                 closeSettings();
             } catch (error) {
                 console.error("Erreur lors de l'enregistrement des paramètres:", error);
@@ -483,7 +500,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.target.value = '';
     });
 
-    function addMessageToUI(role, content) {
+    function addMessageToUI(role, content, stats = null) {
         // Cacher le logo si c'est le premier message
         if (emptyState.style.display !== "none") {
             emptyState.style.display = "none";
@@ -545,6 +562,17 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             msgDiv.appendChild(attachmentsContainer);
+        }
+
+        // Afficher les statistiques si elles existent et si l'option est activée (pour les messages assistant)
+        if (role === 'assistant' && stats && window._displayStats) {
+            const statsEl = document.createElement('div');
+            statsEl.className = 'message-stats';
+            statsEl.style.marginTop = '8px';
+            statsEl.style.fontSize = '12px';
+            statsEl.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#909090';
+            statsEl.textContent = `${stats.tokens} tokens - ${stats.tok_per_sec.toFixed(1)} tok/s - ${stats.seconds.toFixed(2)}s`;
+            msgDiv.appendChild(statsEl);
         }
 
         chatMessages.appendChild(msgDiv);
@@ -680,7 +708,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 emptyState.style.display = "none";
                 
                 messages.forEach(msg => {
-                    addMessageToUI(msg.role, msg.content);
+                    addMessageToUI(msg.role, msg.content, msg.stats);
                 });
                 
                 // Mettre en surbrillance dans la liste
