@@ -854,6 +854,21 @@ document.addEventListener("DOMContentLoaded", () => {
         
         currentBotText = "";
 
+        // Marquer le début de la génération pour mesurer le temps de réponse
+        try {
+            window._generationStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        } catch (e) {
+            window._generationStart = Date.now();
+        }
+
+        // Créer un emplacement pour afficher ultérieurement les statistiques (token/s, temps)
+        const statsPlaceholder = document.createElement('div');
+        statsPlaceholder.className = 'message-stats';
+        statsPlaceholder.style.marginTop = '8px';
+        statsPlaceholder.style.fontSize = '12px';
+        statsPlaceholder.style.color = 'var(--text-secondary)';
+        statsPlaceholder.style.display = 'none';
+        currentBotMessageElement.appendChild(statsPlaceholder);
         // Copier les images et vider l'interface avant l'envoi
         const imagesToSend = imagesToSendLocal.length > 0 ? imagesToSendLocal : null;
         selectedFiles = [];

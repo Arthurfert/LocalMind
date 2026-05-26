@@ -123,6 +123,40 @@ function onStreamEnd() {
     }
     // Le stream est fini, on stocke le message final dans l'historique
     messages.push({role: "assistant", content: currentBotText});
+
+    // Calculer et afficher les statistiques (token/s, temps de réponse)
+    try {
+        const endTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const startTime = window._generationStart || endTime;
+        const elapsedMs = Math.max(0, endTime - startTime);
+        const elapsedSec = Math.max(0.001, elapsedMs / 1000);
+
+        // Estimer le nombre de tokens à partir du nombre de caractères (approx. 4 chars/token)
+        const approxTokens = Math.max(1, Math.round((currentBotText || "").length / 4));
+        const tps = (approxTokens / elapsedSec);
+
+        // Construire le texte à afficher
+        const statsText = `${approxTokens} tokens - ${tps.toFixed(1)} tok/s - ${elapsedSec.toFixed(2)}s`;
+
+        if (currentBotMessageElement) {
+            const statsEl = currentBotMessageElement.querySelector('.message-stats');
+            if (statsEl) {
+                statsEl.textContent = statsText;
+                statsEl.style.display = 'block';
+            } else {
+                const el = document.createElement('div');
+                el.className = 'message-stats';
+                el.textContent = statsText;
+                el.style.marginTop = '8px';
+                el.style.fontSize = '12px';
+                el.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#909090';
+                currentBotMessageElement.appendChild(el);
+            }
+        }
+    } catch (e) {
+        console.error('Erreur calcul stats:', e);
+    }
+
     currentBotMessageElement = null;
     isGenerating = false;
     

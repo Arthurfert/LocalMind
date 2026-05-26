@@ -511,6 +511,24 @@ body {
     margin: 1em 0;
 }
 
+/* Statistiques affichées sous la réponse de l'assistant */
+.message-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 8px;
+    opacity: 0.95;
+}
+
+.message-stats .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+
 .message.assistant table {
     width: 100%;
     border-collapse: collapse;
