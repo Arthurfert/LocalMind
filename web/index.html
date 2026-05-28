@@ -134,7 +134,7 @@
             <div class="settings-tabs">
                 <button class="settings-tab active" data-tab="general">Général</button>
                 <button class="settings-tab" data-tab="mcp">Serveurs MCP</button>
-                <button class="settings-tab" data-tab="providers">Providers</button>
+                <button class="settings-tab" data-tab="providers">Fournisseurs</button>
             </div>
 
             <!-- Contenu Général -->
@@ -204,8 +204,31 @@
             <!-- Contenu Providers -->
             <div class="settings-tab-content" id="tab-providers" style="display: none;">
                 <div class="settings-group">
+                    <label for="provider-kind">Fournisseur</label>
+                    <select id="provider-kind" style="padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color);">
+                        <option value="openapi">OpenAPI compatible / local</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
                     <label for="provider-base-url">Endpoint OpenAPI</label>
-                    <input type="text" id="provider-base-url" placeholder="Ex: http://localhost:11434 ou https://api.example">
+                    <input type="text" id="provider-base-url" placeholder="Ex: http://localhost:11434 ou https://api.openai.com">
+                </div>
+
+                <div class="settings-group">
+                    <label for="provider-auth-mode">Authentification</label>
+                    <select id="provider-auth-mode" style="padding: 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color);">
+                        <option value="none">Aucune</option>
+                        <option value="bearer">Bearer token / OAuth access token</option>
+                        <option value="x-api-key">x-api-key</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label for="provider-api-key">Clé / token</label>
+                    <input type="password" id="provider-api-key" placeholder="Collez votre clé API ou access token OAuth">
                 </div>
 
                 <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">

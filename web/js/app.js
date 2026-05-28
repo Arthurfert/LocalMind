@@ -81,18 +81,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const providers = Array.isArray(settings.providers) ? settings.providers : [];
         const fromList = providers[0] || {};
         return {
+            provider: fromList.provider || settings.provider || "openapi",
             base_url: fromList.base_url || settings.base_url || "http://localhost:11434",
             models_path: fromList.models_path || settings.models_path || "",
             chat_path: fromList.chat_path || settings.chat_path || "/v1/chat/completions",
+            auth_mode: fromList.auth_mode || settings.auth_mode || "none",
+            api_key: fromList.api_key || settings.api_key || "",
         };
     }
 
     function fillProviderForm(settings) {
         const cfg = readActiveProviderSettings(settings || {});
+        const providerKind = document.getElementById('provider-kind');
         const providerBase = document.getElementById('provider-base-url');
+        const providerAuthMode = document.getElementById('provider-auth-mode');
+        const providerApiKey = document.getElementById('provider-api-key');
         const providerModels = document.getElementById('provider-models-path');
         const providerChat = document.getElementById('provider-chat-path');
+        if (providerKind) providerKind.value = cfg.provider || 'openapi';
         if (providerBase) providerBase.value = cfg.base_url || '';
+        if (providerAuthMode) providerAuthMode.value = cfg.auth_mode || 'none';
+        if (providerApiKey) providerApiKey.value = cfg.api_key || '';
         if (providerModels) providerModels.value = cfg.models_path || '';
         if (providerChat) providerChat.value = cfg.chat_path || '';
     }
@@ -326,21 +335,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Save provider settings and reinitialize provider client at runtime
                 try {
+                    const providerKind = document.getElementById('provider-kind');
                     const providerBase = document.getElementById('provider-base-url');
+                    const providerAuthMode = document.getElementById('provider-auth-mode');
+                    const providerApiKey = document.getElementById('provider-api-key');
                     const providerModels = document.getElementById('provider-models-path');
                     const providerChat = document.getElementById('provider-chat-path');
                     const provSettings = {
-                        provider: "openapi",
+                        provider: (providerKind && providerKind.value) ? providerKind.value : "openapi",
                         base_url: (providerBase && providerBase.value) ? providerBase.value.trim() : "http://localhost:11434",
+                        auth_mode: (providerAuthMode && providerAuthMode.value) ? providerAuthMode.value : "none",
+                        api_key: (providerApiKey && providerApiKey.value) ? providerApiKey.value.trim() : "",
                         models_path: (providerModels && providerModels.value) ? providerModels.value.trim() : "",
-                        chat_path: (providerChat && providerChat.value) ? providerChat.value.trim() : "/v1/chat/completions",
+                        chat_path: (providerChat && providerChat.value) ? providerChat.value.trim() : "",
                     };
+
+                    if (provSettings.provider === "anthropic") {
+                        if (!provSettings.base_url) provSettings.base_url = "https://api.anthropic.com";
+                        if (!provSettings.models_path) provSettings.models_path = "/v1/models";
+                        if (!provSettings.chat_path) provSettings.chat_path = "/v1/messages";
+                        if (provSettings.auth_mode === "none") provSettings.auth_mode = "x-api-key";
+                    } else if (provSettings.provider === "openai") {
+                        if (!provSettings.base_url) provSettings.base_url = "https://api.openai.com";
+                        if (!provSettings.models_path) provSettings.models_path = "/v1/models";
+                        if (!provSettings.chat_path) provSettings.chat_path = "/v1/chat/completions";
+                        if (provSettings.auth_mode === "none") provSettings.auth_mode = "bearer";
+                    } else {
+                        if (!provSettings.base_url) provSettings.base_url = "http://localhost:11434";
+                        if (!provSettings.chat_path) provSettings.chat_path = "/v1/chat/completions";
+                    }
 
                     settings.providers = [provSettings];
                     delete settings.provider;
                     delete settings.base_url;
                     delete settings.models_path;
                     delete settings.chat_path;
+                    delete settings.auth_mode;
+                    delete settings.api_key;
 
                     // Call Tauri command to update runtime provider
                     if (window.saveProviderSettings) {

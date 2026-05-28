@@ -74,13 +74,23 @@ fn has_provider_configuration(settings: &Value) -> bool {
     settings.get("base_url").is_some()
         || settings.get("models_path").is_some()
         || settings.get("chat_path").is_some()
+        || settings.get("provider").is_some()
+        || settings.get("auth_mode").is_some()
+        || settings.get("api_key").is_some()
 }
 
-fn extract_openapi_config(settings: &Value) -> (String, Option<String>, Option<String>) {
+fn extract_openapi_config(settings: &Value) -> (String, Option<String>, Option<String>, String, Option<String>) {
     let selected_from_list = settings
         .get("providers")
         .and_then(|p| p.as_array())
         .and_then(|providers| providers.first());
+
+    let cfg_provider = selected_from_list
+        .and_then(|cfg| cfg.get("provider"))
+        .and_then(|v| v.as_str())
+        .or_else(|| settings.get("provider").and_then(|v| v.as_str()))
+        .unwrap_or("openapi")
+        .to_string();
 
     let cfg_base_url = selected_from_list
         .and_then(|cfg| cfg.get("base_url"))
@@ -101,14 +111,35 @@ fn extract_openapi_config(settings: &Value) -> (String, Option<String>, Option<S
         .map(|s| s.to_string())
         .or_else(|| settings.get("chat_path").and_then(|v| v.as_str()).map(|s| s.to_string()));
 
-    (cfg_base_url, cfg_models_path, cfg_chat_path)
+    let cfg_auth_mode = selected_from_list
+        .and_then(|cfg| cfg.get("auth_mode"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| settings.get("auth_mode").and_then(|v| v.as_str()).map(|s| s.to_string()));
+
+    let cfg_api_key = selected_from_list
+        .and_then(|cfg| cfg.get("api_key"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| settings.get("api_key").and_then(|v| v.as_str()).map(|s| s.to_string()));
+
+    (
+        cfg_base_url,
+        cfg_models_path,
+        cfg_chat_path,
+        cfg_provider,
+        cfg_auth_mode.or_else(|| {
+            if cfg_api_key.is_some() {
+                Some("bearer".to_string())
+            } else {
+                None
+            }
+        }),
+    )
 }
 
 fn build_provider_client(settings: &Value) -> Arc<dyn ProviderClient> {
-    let (base_url, models_path, chat_path) = extract_openapi_config(settings);
-    let models = models_path.unwrap_or_default();
-    let chat = chat_path.unwrap_or_else(|| "/v1/chat/completions".to_string());
-    Arc::new(OpenApiClient::new(&base_url, &models, &chat))
+    Arc::new(OpenApiClient::from_settings(settings))
 }
 
 fn normalize_provider_settings(mut settings: Value) -> Value {
@@ -116,10 +147,23 @@ fn normalize_provider_settings(mut settings: Value) -> Value {
         return settings;
     }
 
-    let (base_url, models_path, chat_path) = extract_openapi_config(&settings);
+    let (base_url, models_path, chat_path, provider_kind, auth_mode) = extract_openapi_config(&settings);
+    let api_key = settings
+        .get("api_key")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            settings
+                .get("providers")
+                .and_then(|p| p.as_array())
+                .and_then(|providers| providers.first())
+                .and_then(|cfg| cfg.get("api_key"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        });
 
     let mut provider_obj = serde_json::json!({
-        "provider": "openapi",
+        "provider": provider_kind,
         "base_url": base_url,
     });
 
@@ -131,6 +175,16 @@ fn normalize_provider_settings(mut settings: Value) -> Value {
     if let Some(chat) = chat_path {
         if !chat.trim().is_empty() {
             provider_obj["chat_path"] = Value::String(chat);
+        }
+    }
+    if let Some(mode) = auth_mode {
+        if !mode.trim().is_empty() {
+            provider_obj["auth_mode"] = Value::String(mode);
+        }
+    }
+    if let Some(key) = api_key {
+        if !key.trim().is_empty() {
+            provider_obj["api_key"] = Value::String(key);
         }
     }
 
@@ -153,6 +207,8 @@ fn normalize_provider_settings(mut settings: Value) -> Value {
         map.remove("base_url");
         map.remove("models_path");
         map.remove("chat_path");
+        map.remove("auth_mode");
+        map.remove("api_key");
     }
 
     settings
