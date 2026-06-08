@@ -10,8 +10,9 @@ It should become a **safe** agentic environnement that you can easily deploy and
 
 ## Ideas and things to come (*by priority*)
 
+- Copy LLM response button, as for every code block
 - PDF handling
-- Latex formatting
-- Add agents, skills
-- Add RAG
-- Add STT model
+- Add agent mode, subagents calling
+- Add skills
+- Add a graph RAG
+- Add STT model, and TTS

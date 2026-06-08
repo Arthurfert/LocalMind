@@ -23,7 +23,56 @@ document.addEventListener("DOMContentLoaded", () => {
             return `<pre><code${langClass}>${escapeHtml(code)}</code></pre>`;
         }
 
-        return window.marked ? marked.parse(content) : content;
+        if (!window.marked) return content;
+
+        const displayMaths = [];
+        const inlineMaths = [];
+
+        let processed = content.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => {
+            const id = displayMaths.length;
+            displayMaths.push(math);
+            return `\x00KDD${id}\x00`;
+        });
+
+        processed = processed.replace(/(?<!\$)\$((?:[^$\n]|\\.)+?)\$(?!\$)/g, (_, math) => {
+            const id = inlineMaths.length;
+            inlineMaths.push(math);
+            return `\x00KDI${id}\x00`;
+        });
+
+        let html = marked.parse(processed);
+
+        if (window.katex) {
+            html = html.replace(/\x00KDD(\d+)\x00/g, (_, id) => {
+                try {
+                    return katex.renderToString(displayMaths[parseInt(id)], {
+                        displayMode: true,
+                        throwOnError: false
+                    });
+                } catch (e) {
+                    return `<div class="katex-error">${escapeHtml(displayMaths[parseInt(id)])}</div>`;
+                }
+            });
+            html = html.replace(/\x00KDI(\d+)\x00/g, (_, id) => {
+                try {
+                    return katex.renderToString(inlineMaths[parseInt(id)], {
+                        displayMode: false,
+                        throwOnError: false
+                    });
+                } catch (e) {
+                    return `<span class="katex-error">${escapeHtml(inlineMaths[parseInt(id)])}</span>`;
+                }
+            });
+        } else {
+            html = html.replace(/\x00KDD(\d+)\x00/g, (_, id) =>
+                `<div class="katex-error">${escapeHtml(displayMaths[parseInt(id)])}</div>`
+            );
+            html = html.replace(/\x00KDI(\d+)\x00/g, (_, id) =>
+                `<span class="katex-error">${escapeHtml(inlineMaths[parseInt(id)])}</span>`
+            );
+        }
+
+        return html;
     }
 
     const messageInput = document.getElementById("message-input");

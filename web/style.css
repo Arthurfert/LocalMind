@@ -1036,3 +1036,16 @@ body {
     opacity: 0.8;
 }
 
+/* KaTeX error fallback */
+.katex-error {
+    color: #ff8a8a;
+    background: rgba(255, 80, 80, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 80, 80, 0.2);
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
